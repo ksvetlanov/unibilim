@@ -21,5 +21,6 @@ urlpatterns = [
     path('', include('professors.urls')),
     path('', include('meetings.urls')),
     path('', include('payments.urls')),
+    path('swagger/', include('swagger_doc.urls')),
     path('admin/', admin.site.urls),
 ]

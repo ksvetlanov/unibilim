@@ -31,6 +31,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'swagger_doc',
+    'drf_yasg',
+    'rest_framework',
     'professors',
     'meetings',
     'payments',                 
