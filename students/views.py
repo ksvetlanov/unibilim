@@ -31,7 +31,7 @@ def get_token_from_server(transaction_id):
 
 def send_otp_code(transaction_id, phone):
     url = 'https://smspro.nikita.kg/api/otp/send'
-    api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'  # Замените на свой ключ авторизации
+    api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'
 
     headers = {
         'X-API-KEY': api_key,
@@ -49,7 +49,7 @@ def send_otp_code(transaction_id, phone):
     if response.status_code == 200 and response_data.get('status') == 0:
         token = response_data.get('token')
         print(token)
-        save_token_to_server(transaction_id, token)  # Сохранение токена на сервере
+        save_token_to_server(transaction_id, token)
         return token
     else:
         raise Exception('Failed to send OTP')
@@ -57,7 +57,7 @@ def send_otp_code(transaction_id, phone):
 
 def verify_otp_code(token, code):
     url = 'https://smspro.nikita.kg/api/otp/verify'
-    api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'  # Замените на свой ключ авторизации
+    api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'
 
     headers = {
         'X-API-KEY': api_key,
@@ -84,10 +84,10 @@ class StudentRegistrationAPIView(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            # Создание нового пользователя и студента
+
             student = serializer.save()
 
-            # Сохранение уникального токена на сервере
+
             transaction_id = serializer.validated_data['username']
             token = student.otp_token
             # print("transaction_id:", transaction_id)
@@ -98,11 +98,11 @@ class StudentRegistrationAPIView(APIView):
             phone = serializer.validated_data['phone_numbers']
             send_otp_code(transaction_id, phone)
 
-            # Сохранение transaction_id в сессии
+
             request.session['transaction_id'] = transaction_id
 
             # Перенаправление на страницу подтверждения кода
-            return redirect('otp_verification')  # Замените на свой URL маршрута для проверки OTP
+            return redirect('otp_verification')
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -115,14 +115,14 @@ class OTPVerificationView(APIView):
         serializer.is_valid(raise_exception=True)
 
         url = 'https://smspro.nikita.kg/api/otp/verify'
-        api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'  # Замените на свой ключ авторизации
+        api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'
 
         headers = {
             'X-API-KEY': api_key,
             'Content-Type': 'application/json'
         }
 
-        # Получение уникального токена из сохраненных данных на сервере
+
         session = SessionStore(request.session.session_key)
         transaction_id = session.get('transaction_id')
         token = get_token_from_server(transaction_id)
