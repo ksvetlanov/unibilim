@@ -33,13 +33,16 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'professors',
     'meetings',
-    'payments',                 
+    'payments',
+    'students',
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
 ]
 
 MIDDLEWARE = [
@@ -76,6 +79,16 @@ WSGI_APPLICATION = 'unibilim.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'postgres', # имя вашей базы данных
+#         'USER': 'postgres', # имя пользователя базы данных
+#         'PASSWORD': '29011208dj', # пароль пользователя базы данных
+#         'HOST': 'localhost', # или имя сервера, где установлен PostgreSQL
+#         'PORT': '5432', # порт, на котором работает PostgreSQL
+#     }
+# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -86,7 +99,6 @@ DATABASES = {
         'PORT': '5432', # порт, на котором работает PostgreSQL
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
