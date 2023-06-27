@@ -5,6 +5,7 @@ from .views import MeetingsViewSet
 router = DefaultRouter()
 router.register(r'meetings', MeetingsViewSet)
 
+
 urlpatterns = [
     path('', include(router.urls)),
 ]

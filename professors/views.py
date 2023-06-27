@@ -14,3 +14,6 @@ class TimetableView(generics.ListCreateAPIView):
 class TimetableDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Timetable.objects.all()
     serializer_class = TimetableSerializer
+    
+    
+
