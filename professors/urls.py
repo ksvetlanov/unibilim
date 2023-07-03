@@ -1,12 +1,11 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import ProfessorsViewSet, TimetableView, TimetableDetailView
+from rest_framework import routers
+from rest_framework_nested import routers as nested_routers
+from .views import ProfessorsViewSet, TimetableViewSet
 
-router = DefaultRouter()
-router.register('professors', ProfessorsViewSet)
+router = routers.DefaultRouter()
+router.register(r'professors', ProfessorsViewSet, basename='professors')
 
-urlpatterns = [
-    path('', include(router.urls)),
-    path('timetables/', TimetableView.as_view(), name='timetable-list'),
-    path('timetables/<int:pk>/', TimetableDetailView.as_view(), name='timetable-detail'),
-]
+professor_router = nested_routers.NestedSimpleRouter(router, r'professors', lookup='professor')
+professor_router.register(r'timetable', TimetableViewSet, basename='professor-timetable')
+
+urlpatterns = router.urls + professor_router.urls

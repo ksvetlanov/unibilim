@@ -5,15 +5,11 @@ from .serializers import ProfessorsSerializer, TimetableSerializer
 class ProfessorsViewSet(viewsets.ModelViewSet):
     queryset = Professors.objects.all()
     serializer_class = ProfessorsSerializer
-    
-    
-class TimetableView(generics.ListCreateAPIView):
-    queryset = Timetable.objects.all()
+    lookup_field = 'id'
+
+class TimetableViewSet(viewsets.ModelViewSet):
     serializer_class = TimetableSerializer
 
-class TimetableDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Timetable.objects.all()
-    serializer_class = TimetableSerializer
-    
-    
-
+    def get_queryset(self):
+        queryset = Timetable.objects.filter(professor__id=self.kwargs['professor_id'])
+        return queryset

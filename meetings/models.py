@@ -21,3 +21,6 @@ class Meetings(models.Model):
     )
     time_delta = timedelta(hours=1)
     duration = models.DurationField(default=time_delta)
+    
+    def __str__(self):
+        return f'Профессор({self.professor.firstName} {self.professor.surname}) - студент({self.student.firstname} {self.student.surname}) - {self.datetime}'

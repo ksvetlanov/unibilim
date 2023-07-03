@@ -4,13 +4,22 @@ import datetime
 from django.contrib.auth.models import User
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'password')  # и любые другие поля, которые вы хотите включить
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+
 class ProfessorsSerializer(serializers.ModelSerializer):
+    user = UserSerializer()  # использование вложенного сериализатора
+
     class Meta:
         model = Professors
         fields = '__all__'
-        extra_kwargs = {
-            'user': {'write_only': True}
-        }
+        
 
     def create(self, validated_data):
         # получение данных пользователя
@@ -20,22 +29,23 @@ class ProfessorsSerializer(serializers.ModelSerializer):
         # создание профессора с созданным пользователем
         professor = Professors.objects.create(user=user, **validated_data)
         return professor
+ 
         
 class TimetableSerializer(serializers.ModelSerializer):
-    start_time_monday = serializers.TimeField(write_only=True)
-    end_time_monday = serializers.TimeField(write_only=True)
-    start_time_tuesday = serializers.TimeField(write_only=True)
-    end_time_tuesday = serializers.TimeField(write_only=True)
-    start_time_wednesday = serializers.TimeField(write_only=True)
-    end_time_wednesday = serializers.TimeField(write_only=True)
-    start_time_thursday = serializers.TimeField(write_only=True)
-    end_time_thursday = serializers.TimeField(write_only=True)
-    start_time_friday = serializers.TimeField(write_only=True)
-    end_time_friday = serializers.TimeField(write_only=True)
-    start_time_saturday = serializers.TimeField(write_only=True)
-    end_time_saturday = serializers.TimeField(write_only=True)
-    start_time_sunday = serializers.TimeField(write_only=True)
-    end_time_sunday = serializers.TimeField(write_only=True)
+    start_time_monday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_monday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    start_time_tuesday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_tuesday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    start_time_wednesday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_wednesday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    start_time_thursday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_thursday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    start_time_friday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_friday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    start_time_saturday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_saturday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    start_time_sunday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
+    end_time_sunday = serializers.TimeField(write_only=True, required=False, allow_null=True, format='%H:%M', input_formats=['%H:%M',])
 
     class Meta:
         model = Timetable
@@ -45,16 +55,15 @@ class TimetableSerializer(serializers.ModelSerializer):
         days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
         for day in days_of_week:
-            start_time = datetime.datetime.strptime(validated_data.pop(f'start_time_{day}'), "%H:%M").time()
-            end_time = datetime.datetime.strptime(validated_data.pop(f'end_time_{day}'), "%H:%M").time()
+            start_time = validated_data.pop(f'start_time_{day}', None)
+            end_time = validated_data.pop(f'end_time_{day}', None)
 
-            # Переведите начало и конец времени в часы рабочего дня
-            hours_in_day = int((datetime.datetime.combine(datetime.date.today(), end_time) - 
-                                datetime.datetime.combine(datetime.date.today(), start_time)).seconds / 3600)
-            workday_hours = [datetime.time(hour=(start_time.hour + i) % 24) for i in range(hours_in_day)]
-
-            # Сохраните часы работы для данного дня недели
-            validated_data[day] = workday_hours
+            if start_time and end_time:               
+                workday_hours = [start_time, end_time]          
+                validated_data[day] = workday_hours
+            else:
+                validated_data[day] = None
 
         return super().create(validated_data)
+
 
