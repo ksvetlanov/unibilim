@@ -31,8 +31,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+<<<<<<< HEAD
     'swagger_doc',
     'drf_yasg',
+=======
+    'students',
+>>>>>>> main
     'rest_framework',
     'professors',
     'meetings',

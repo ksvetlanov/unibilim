@@ -18,9 +18,15 @@ from django.urls import path, include
 
 
 urlpatterns = [
+<<<<<<< HEAD
     path('', include('professors.urls')),
     path('', include('meetings.urls')),
     path('', include('payments.urls')),
     path('swagger/', include('swagger_doc.urls')),
+=======
+    path('api/', include('professors.urls')),
+    path('api/', include('meetings.urls')),
+    path('api/', include('payments.urls')),
+>>>>>>> main
     path('admin/', admin.site.urls),
 ]
