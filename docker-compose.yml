@@ -1,0 +1,19 @@
+version: '3'
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 290111208dj
+      POSTGRES_DB: unibilim
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python /code/manage.py runserver 0.0.0.0:80
+    volumes:
+      - .:/code
+    ports:
+      - "80:80"
+    depends_on:
+      - db
