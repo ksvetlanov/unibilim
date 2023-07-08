@@ -6,14 +6,14 @@ RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev musl-dev
 COPY  . .
 
 
-RUN pip install -r unibilim/requirements.txt
+RUN pip install -r requirements.txt
 
 
 
 
 
 ENV DJANGO_SETTINGS_MODULE=unibilim.settings
-RUN python unibilim/manage.py makemigrations
-RUN python unibilim/manage.py migrate
+RUN python manage.py makemigrations
+RUN python manage.py migrate
 
-CMD ["python", "unibilim/manage.py", "runserver", "0.0.0.0:80"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]
