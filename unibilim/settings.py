@@ -84,13 +84,14 @@ WSGI_APPLICATION = 'unibilim.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'unibilim', # имя вашей базы данных
-        'USER': 'postgres', # имя пользователя базы данных
-        'PASSWORD': '315920it', # пароль пользователя базы данных
-        'HOST': 'localhost', # или имя сервера, где установлен PostgreSQL
-        'PORT': '5432', # порт, на котором работает PostgreSQL
+        'NAME': 'unibilim',
+        'USER': 'postgres',
+        'PASSWORD': '290111208dj',
+        'HOST': 'db',
+        'PORT': 5432,
     }
 }
+
 
 
 # Password validation
