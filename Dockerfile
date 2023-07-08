@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev musl-dev
 COPY  .
 
 
-RUN pip install -r requirements.txt
+RUN pip install -r unibilim/requirements.txt
 
 
 
