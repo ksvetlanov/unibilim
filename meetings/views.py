@@ -5,12 +5,17 @@ from .models import Meetings
 from .serializers import MeetingsSerializer
 
 class MeetingsViewSet(viewsets.ModelViewSet):
-    queryset = Meetings.objects.all()
     serializer_class = MeetingsSerializer
 
-    @action(detail=False, methods=['post'])
-    def by_professor(self, request):
-        professor_id = request.data.get('professor_id')
-        meetings = self.queryset.filter(professor_id=professor_id)
-        serializer = self.get_serializer(meetings, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        queryset = Meetings.objects.all()
+        professor_id = self.request.query_params.get('professor_id', None)
+        student_id = self.request.query_params.get('student_id', None)
+        
+        if professor_id is not None:
+            queryset = queryset.filter(professor_id=professor_id)
+            
+        if student_id is not None:
+            queryset = queryset.filter(student_id=student_id)
+            
+        return queryset
