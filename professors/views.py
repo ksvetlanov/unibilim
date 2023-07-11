@@ -1,5 +1,5 @@
 from rest_framework import viewsets, generics
-from .models import Professors, Timetable, Holidays
+from .models import Professors, Timetable, Holiday
 from .serializers import ProfessorsSerializer, TimetableSerializer, HolidaysSerializer
 
 class ProfessorsViewSet(viewsets.ModelViewSet):
@@ -15,6 +15,6 @@ class TimetableViewSet(viewsets.ModelViewSet):
         return queryset
 
 class HolidaysViewSet(viewsets.ModelViewSet):
-    queryset = Holidays.objects.all()
+    queryset = Holiday.objects.all()
     serializer_class = HolidaysSerializer
     lookup_field = 'id'

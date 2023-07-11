@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Professors, Timetable, Holidays
+from .models import Professors, Timetable, Holiday
 import datetime 
 from django.contrib.auth.models import User
 
@@ -69,5 +69,5 @@ class TimetableSerializer(serializers.ModelSerializer):
 
 class HolidaysSerializer(serializers.ModelSerializer):    
     class Meta:
-        model = Holidays
+        model = Holiday
         fields = '__all__'
