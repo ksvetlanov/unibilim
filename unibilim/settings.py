@@ -87,8 +87,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'unibilim',
         'USER': 'postgres',
-        'PASSWORD': '315920it', #290111208dj',
-        'HOST': 'localhost', #'db',
+        'PASSWORD': '290111208dj', #'315920it', 
+        'HOST': 'db',  #'localhost', 
         'PORT': 5432,
     }
 }
