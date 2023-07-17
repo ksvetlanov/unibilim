@@ -11,7 +11,7 @@ class Professors(models.Model):
         ('10+', 'More than 10 years'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     firstName = models.CharField(max_length=50)
     surname = models.CharField(max_length=50)
     patronym = models.CharField(max_length=50, blank=True, null=True)

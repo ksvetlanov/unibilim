@@ -21,7 +21,7 @@ class Student(models.Model):
     city = models.CharField(max_length=255)
     district_city = models.CharField(max_length=255)  # Добавленное поле
     status = models.CharField(max_length=255)
-    photo = models.ImageField(upload_to='student_photos')
+    photo = models.ImageField(upload_to='student_photos', null=True)
     otp_token = models.CharField(max_length=255)
     token = models.CharField(max_length=32, null=True)
     language = models.CharField(max_length=50)

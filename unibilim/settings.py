@@ -31,7 +31,8 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-
+    'rest_framework.authtoken',
+    'accounts',
     'swagger_doc',
     'drf_yasg',
     'students',
@@ -86,8 +87,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'unibilim',
         'USER': 'postgres',
-        'PASSWORD': '290111208dj',
-        'HOST': 'db',
+        'PASSWORD': '315920it', #290111208dj',
+        'HOST': 'localhost', #'db',
         'PORT': 5432,
     }
 }

@@ -11,7 +11,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['username', 'first_name', 'last_name', 'phone_numbers', 'telegram_id', 'telegram_username', 'city', 'token', 'otp_token', 'language']
+        fields = ['username', 'first_name', 'last_name', 'phone_numbers', 'telegram_id', 'telegram_username', 'city', 'token', 'language']
 
 from rest_framework import serializers
 

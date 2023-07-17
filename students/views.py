@@ -8,6 +8,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 import json
 from .models import Student
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 def save_token_to_server(transaction_id, token):
@@ -80,7 +82,12 @@ def verify_otp_code(token, code):
 
 class StudentRegistrationAPIView(APIView):
     serializer_class = StudentRegisterSerializer
-
+    @swagger_auto_schema(
+        operation_description="Регистрация нового студента.",
+        request_body=StudentRegisterSerializer,
+        responses={200: openapi.Response('Success'), 
+                   400: 'Bad Request'}
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -109,7 +116,12 @@ class StudentRegistrationAPIView(APIView):
 
 class OTPVerificationView(APIView):
     serializer_class = OTPVerificationSerializer
-
+    @swagger_auto_schema(
+        operation_description="Проверка одноразового кода подтверждения.",
+        request_body=OTPVerificationSerializer,
+        responses={200: openapi.Response('Success'), 
+                   400: 'Bad Request'}
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
