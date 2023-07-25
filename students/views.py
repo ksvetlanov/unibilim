@@ -1,15 +1,14 @@
 from rest_framework import serializers
 import requests
 from rest_framework.response import Response
-from .serializers import StudentRegisterSerializer, OTPVerificationSerializer
+from .serializers import StudentRegisterSerializer, OTPVerificationSerializer, RegionSerializer, DistrictSerializer, \
+    CitySerializer
 from django.contrib.sessions.backends.db import SessionStore
 from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.views import APIView
 import json
-from .models import Student
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from .models import Student, District, Region
 
 
 def save_token_to_server(transaction_id, token):
@@ -82,12 +81,33 @@ def verify_otp_code(token, code):
 
 class StudentRegistrationAPIView(APIView):
     serializer_class = StudentRegisterSerializer
-    @swagger_auto_schema(
-        operation_description="Регистрация нового студента.",
-        request_body=StudentRegisterSerializer,
-        responses={200: openapi.Response('Success'), 
-                   400: 'Bad Request'}
-    )
+
+    def get_available_regions(self):
+        regions = Region.objects.all()
+        serializer = RegionSerializer(regions, many=True)
+        return serializer.data
+
+    def get_available_districts(self, region_id):
+        try:
+            region = Region.objects.get(pk=region_id)
+            districts = region.districts.all()
+            serializer = DistrictSerializer(districts, many=True)
+            return serializer.data
+        except Region.DoesNotExist:
+            return []
+
+    def get_available_cities(self, district_id):
+        try:
+            district = District.objects.get(pk=district_id)
+            cities = district.cities.all()
+            serializer = CitySerializer(cities, many=True)
+            return serializer.data
+        except District.DoesNotExist:
+            return []
+
+    def get(self, request):
+        regions = self.get_available_regions()
+        return Response({'regions': regions}, status=status.HTTP_200_OK)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -116,12 +136,7 @@ class StudentRegistrationAPIView(APIView):
 
 class OTPVerificationView(APIView):
     serializer_class = OTPVerificationSerializer
-    @swagger_auto_schema(
-        operation_description="Проверка одноразового кода подтверждения.",
-        request_body=OTPVerificationSerializer,
-        responses={200: openapi.Response('Success'), 
-                   400: 'Bad Request'}
-    )
+
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
