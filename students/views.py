@@ -161,5 +161,16 @@ class OTPVerificationView(APIView):
 
         response = requests.post(url, headers=headers, json=data)
         response_data = response.json()
+        print(response_data)
 
-        return Response(response_data)
+        if response_data.get('status') == 0 and response_data.get('description') == 'Valid Code':
+            transaction_id = session.get('transaction_id')
+            student = Student.objects.get(user__username=transaction_id)  # Находим объект Student по transaction_id
+            student.status = True
+            student.save()  # Обновляем статус на True
+
+            return Response({'message': 'Проверка успешна. Статус пользователя обновлен на True.'})
+        else:
+            return Response({'message': 'Проверка неуспешна'}, status=status.HTTP_400_BAD_REQUEST)
+
+         # return Response(response_data)
