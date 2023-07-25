@@ -39,8 +39,9 @@ class Student(models.Model):
     district_city = models.ForeignKey(District, on_delete=models.SET_NULL, blank=True, null=True)
     photo = models.ImageField(upload_to='student_photos', blank=True, null=True)
     otp_token = models.CharField(max_length=255)
-    token = models.CharField(max_length=32, null=True)
-    language = models.CharField(max_length=50)
+
+    status = models.BooleanField(default=False)
+
 
     def __str__(self):
-        return self.firstname + ' ' + self.surname
+        return f"{self.firstname} {self.surname} {self.status}"
