@@ -1,4 +1,4 @@
-from django.core.validators import RegexValidator
+from .models import Region, District, City
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Student
@@ -11,15 +11,31 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['username', 'first_name', 'last_name', 'phone_numbers', 'telegram_id', 'telegram_username', 'city', 'token', 'language']
+        fields = ['username', 'first_name', 'last_name', 'phone_numbers', 'telegram_id', 'telegram_username', 'city',
+                  'token', 'otp_token', 'language']
 
-from rest_framework import serializers
 
-from rest_framework import serializers
+class CitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = City
+        fields = ('id', 'name')
 
-from django.contrib.auth.models import User
-from rest_framework import serializers
-from .models import Student
+
+class DistrictSerializer(serializers.ModelSerializer):
+    cities = CitySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = District
+        fields = ('id', 'name', 'cities')
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    districts = DistrictSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Region
+        fields = ('id', 'name', 'districts')
+
 
 class StudentRegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField()
@@ -27,15 +43,13 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
     phone_numbers = serializers.CharField(max_length=20)
     date_of_birth = serializers.DateField()
-    region = serializers.ChoiceField(choices=Student.REGION_CHOICES)
-    city = serializers.CharField()
-    status = serializers.CharField()
-    photo = serializers.ImageField()
+    photo = serializers.ImageField(allow_null=True, allow_empty_file=True)
     otp_token = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = Student
-        fields = ['username', 'password', 'password2', 'phone_numbers', 'telegram_id', 'telegram_username', 'date_of_birth', 'region', 'city', 'district_city', 'status', 'photo', 'otp_token']
+        fields = ['username', 'password', 'password2', 'phone_numbers', 'telegram_username', 'date_of_birth', 'region',
+                  'district_city', 'city', 'photo', 'otp_token']
 
     def validate(self, data):
         password = data.get('password')
@@ -53,8 +67,6 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
         validated_data['user'] = user
         student = Student.objects.create(**validated_data)
         return student
-
-
 
 
 class OTPVerificationSerializer(serializers.Serializer):
