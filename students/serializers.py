@@ -11,7 +11,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['username', 'first_name', 'last_name', 'phone_numbers', 'telegram_id', 'telegram_username', 'city',
+        fields = ['username', 'first_name', 'last_name','patronym', 'phone_numbers', 'telegram_id', 'telegram_username', 'city',
                   'token', 'otp_token', 'language']
 
 
@@ -48,7 +48,7 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['username', 'password', 'password2', 'phone_numbers', 'telegram_username', 'date_of_birth', 'region',
+        fields = ['username','firstname','surname','patronym', 'password', 'password2', 'phone_numbers', 'telegram_username', 'date_of_birth', 'region',
                   'district_city', 'city', 'photo', 'otp_token']
 
     def validate(self, data):
