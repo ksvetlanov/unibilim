@@ -10,7 +10,27 @@ from rest_framework.views import APIView
 import json
 from .models import Student, District, Region
 
+from rest_framework import generics
+from .models import Region, District, City
+from .serializers import RegionSerializer, DistrictSerializer, CitySerializer
 
+class RegionListView(generics.ListAPIView):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+
+class DistrictListView(generics.ListAPIView):
+    serializer_class = DistrictSerializer
+
+    def get_queryset(self):
+        region_id = self.kwargs['region_id']
+        return District.objects.filter(region__id=region_id)
+
+class CityListView(generics.ListAPIView):
+    serializer_class = CitySerializer
+
+    def get_queryset(self):
+        district_id = self.kwargs['district_id']
+        return City.objects.filter(district__id=district_id)
 def save_token_to_server(transaction_id, token):
     try:
         student = Student.objects.get(user__username=transaction_id)
@@ -82,32 +102,7 @@ def verify_otp_code(token, code):
 class StudentRegistrationAPIView(APIView):
     serializer_class = StudentRegisterSerializer
 
-    def get_available_regions(self):
-        regions = Region.objects.all()
-        serializer = RegionSerializer(regions, many=True)
-        return serializer.data
 
-    def get_available_districts(self, region_id):
-        try:
-            region = Region.objects.get(pk=region_id)
-            districts = region.districts.all()
-            serializer = DistrictSerializer(districts, many=True)
-            return serializer.data
-        except Region.DoesNotExist:
-            return []
-
-    def get_available_cities(self, district_id):
-        try:
-            district = District.objects.get(pk=district_id)
-            cities = district.cities.all()
-            serializer = CitySerializer(cities, many=True)
-            return serializer.data
-        except District.DoesNotExist:
-            return []
-
-    def get(self, request):
-        regions = self.get_available_regions()
-        return Response({'regions': regions}, status=status.HTTP_200_OK)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
