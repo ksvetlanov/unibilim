@@ -42,14 +42,14 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
     phone_numbers = serializers.CharField(max_length=20)
-    date_of_birth = serializers.DateField()
+    date_of_birth = serializers.DateField(input_formats=['%d-%m-%Y'])
     photo = serializers.ImageField(allow_null=True, allow_empty_file=True)
-    otp_token = serializers.CharField(allow_blank=True, required=False)
+    # otp_token = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = Student
         fields = ['username','firstname','surname','patronym', 'password', 'password2', 'phone_numbers', 'telegram_username', 'date_of_birth', 'region',
-                  'district_city', 'city', 'photo', 'otp_token']
+                  'district_city', 'city', 'photo']
 
     def validate(self, data):
         password = data.get('password')
