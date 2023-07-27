@@ -13,7 +13,7 @@ RUN pip install -r requirements.txt
 
 
 ENV DJANGO_SETTINGS_MODULE=unibilim.settings
-RUN python manage.py makemigrations
+
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]
 
