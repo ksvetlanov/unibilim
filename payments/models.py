@@ -21,3 +21,5 @@ class Payments(models.Model):
         choices=STATUS_CHOICES,
         default='PENDING',
     )
+    def __str__(self):
+        return f'{self.service} {self.student.surname} {self.amount}'

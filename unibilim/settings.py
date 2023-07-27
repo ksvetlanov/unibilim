@@ -48,6 +48,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', 
@@ -92,8 +100,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'unibilim',
         'USER': 'postgres',
-        'PASSWORD': '290111208dj', #'315920it', 
-        'HOST': 'db',  #'localhost', 
+        'PASSWORD':'290111208dj', #'315920it'
+        'HOST':  'db', #'localhost', #
         'PORT': 5432,
     }
 }

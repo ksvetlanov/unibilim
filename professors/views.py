@@ -11,6 +11,8 @@ class TimetableViewSet(viewsets.ModelViewSet):
     serializer_class = TimetableSerializer
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Timetable.objects.none()
         queryset = Timetable.objects.filter(professor__id=self.kwargs['professor_id'])
         return queryset
 
