@@ -7,8 +7,10 @@ from professors.models import Professors
 from students.models import Student
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.permissions import AllowAny
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
     @swagger_auto_schema(
         operation_description="Аутентифицирует пользователя и возвращает токен и роль пользователя.",
         request_body=openapi.Schema(

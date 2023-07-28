@@ -13,6 +13,7 @@ from .models import Student, District, Region
 from rest_framework import generics
 from .models import Region, District, City
 from .serializers import RegionSerializer, DistrictSerializer, CitySerializer
+from rest_framework.permissions import AllowAny
 
 class RegionListView(generics.ListAPIView):
     queryset = Region.objects.all()
@@ -100,6 +101,7 @@ def verify_otp_code(token, code):
 
 
 class StudentRegistrationAPIView(APIView):
+    permission_classes = [AllowAny]
     serializer_class = StudentRegisterSerializer
 
 
@@ -130,6 +132,7 @@ class StudentRegistrationAPIView(APIView):
 
 
 class OTPVerificationView(APIView):
+    permission_classes = [AllowAny]
     serializer_class = OTPVerificationSerializer
 
     def post(self, request):
