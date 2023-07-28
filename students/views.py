@@ -16,19 +16,20 @@ from .serializers import RegionSerializer, DistrictSerializer, CitySerializer
 from rest_framework.permissions import AllowAny
 
 class RegionListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
 
 class DistrictListView(generics.ListAPIView):
     serializer_class = DistrictSerializer
-
+    permission_classes = [AllowAny]
     def get_queryset(self):
         region_id = self.kwargs['region_id']
         return District.objects.filter(region__id=region_id)
 
 class CityListView(generics.ListAPIView):
     serializer_class = CitySerializer
-
+    permission_classes = [AllowAny]
     def get_queryset(self):
         district_id = self.kwargs['district_id']
         return City.objects.filter(district__id=district_id)
