@@ -33,12 +33,19 @@ class CitySerializer(serializers.ModelSerializer):
 
 class StudentRegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField()
+    firstname = serializers.CharField()
+    surname = serializers.CharField()
+    patronym = serializers.CharField(allow_blank=True, required=False)
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
     phone_numbers = serializers.CharField(max_length=20)
+    telegram_username = serializers.CharField()
     date_of_birth = serializers.DateField(input_formats=['%d-%m-%Y'])
-    photo = serializers.ImageField(allow_null=True, allow_empty_file=True)
-    # otp_token = serializers.CharField(allow_blank=True, required=False)
+    region = serializers.PrimaryKeyRelatedField(queryset=Region.objects.all())
+    district_city = serializers.PrimaryKeyRelatedField(queryset=District.objects.all())
+    city = serializers.PrimaryKeyRelatedField(queryset=City.objects.all())
+
+    # photo = serializers.ImageField()
 
     class Meta:
         model = Student
@@ -61,6 +68,7 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
         validated_data['user'] = user
         student = Student.objects.create(**validated_data)
         return student
+
 
 
 class OTPVerificationSerializer(serializers.Serializer):
