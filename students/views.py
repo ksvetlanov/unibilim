@@ -1,15 +1,15 @@
 from rest_framework import serializers
 import requests
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from .serializers import StudentRegisterSerializer, OTPVerificationSerializer, RegionSerializer, DistrictSerializer, \
-    CitySerializer
+    CitySerializer, StudentSerializer2
 from django.contrib.sessions.backends.db import SessionStore
 from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.views import APIView
 import json
 from .models import Student, District, Region
-
 from rest_framework import generics
 from .models import Region, District, City
 from .serializers import RegionSerializer, DistrictSerializer, CitySerializer
@@ -173,3 +173,18 @@ class OTPVerificationView(APIView):
             return Response({'message': 'Проверка неуспешна'}, status=status.HTTP_400_BAD_REQUEST)
 
          # return Response(response_data)
+
+
+class CabinetView(generics.RetrieveAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer2
+
+    def get_object(self):
+        user = self.request.user
+        try:
+            student = self.queryset.get(user=user)
+        except Student.DoesNotExist:
+            raise PermissionDenied("student matching query does not exist")
+
+        return student
+

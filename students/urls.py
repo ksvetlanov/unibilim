@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import StudentRegistrationAPIView, OTPVerificationView,RegionListView, DistrictListView, CityListView
+from .views import StudentRegistrationAPIView, OTPVerificationView,RegionListView, DistrictListView, CityListView, CabinetView
 
 # router = DefaultRouter()
 # router.register(r'students', StudentViewSet)
@@ -13,5 +13,6 @@ urlpatterns = [
     path('regions/', RegionListView.as_view(), name='region-list'),
     path('regions/<int:region_id>/districts/', DistrictListView.as_view(), name='district-list'),
     path('districts/<int:district_id>/cities/', CityListView.as_view(), name='city-list'),
+    path('students/cabinet/', CabinetView.as_view(), name='students_cabinet-view'),
 ]
 

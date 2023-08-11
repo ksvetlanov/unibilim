@@ -76,3 +76,13 @@ class OTPVerificationSerializer(serializers.Serializer):
 
     def validate_code(self, value):
         return value
+
+
+class StudentSerializer2(serializers.ModelSerializer):
+    username = serializers.ReadOnlyField(source='user.username')
+    first_name = serializers.ReadOnlyField(source='user.first_name')
+    last_name = serializers.ReadOnlyField(source='user.last_name')
+
+    class Meta:
+        model = Student
+        fields = '__all__'
