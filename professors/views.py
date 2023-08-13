@@ -1,4 +1,4 @@
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, permissions
 from rest_framework.exceptions import PermissionDenied
 
 from .models import Professors, Timetable, Holiday
@@ -28,13 +28,14 @@ class HolidaysViewSet(viewsets.ModelViewSet):
 
 
 class CabinetView(generics.RetrieveAPIView):
-    queryset = Professors.objects.all()
-    serializer_class = ProfessorsSerializer
+    serializer_class = ProfessorsCabinetSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Require authentication
 
     def get_object(self):
         user = self.request.user
+
         try:
-            professor = self.queryset.get(user=user)
+            professor = Professors.objects.get(user=user)
         except Professors.DoesNotExist:
             raise PermissionDenied("Professors matching query does not exist")
 
