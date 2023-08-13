@@ -170,16 +170,5 @@ class OTPVerificationView(APIView):
             return Response({'message': 'Проверка неуспешна'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CabinetView(generics.RetrieveAPIView):
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer2
 
-    def get_object(self):
-        user = self.request.user
-        try:
-            student = self.queryset.get(user=user)
-        except Student.DoesNotExist:
-            raise PermissionDenied("student matching query does not exist")
-
-        return student
 

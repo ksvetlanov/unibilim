@@ -71,3 +71,5 @@ class HolidaysSerializer(serializers.ModelSerializer):
     class Meta:
         model = Holiday
         fields = '__all__'
+
+
