@@ -3,7 +3,7 @@ import requests
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from .serializers import StudentRegisterSerializer, OTPVerificationSerializer, RegionSerializer, DistrictSerializer, \
-    CitySerializer, StudentSerializer2
+    CitySerializer
 from django.contrib.sessions.backends.db import SessionStore
 from django.shortcuts import redirect
 from rest_framework import status

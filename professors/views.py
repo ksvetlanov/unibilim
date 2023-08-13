@@ -1,8 +1,7 @@
 from rest_framework import viewsets, generics
 from rest_framework.exceptions import PermissionDenied
-
 from .models import Professors, Timetable, Holiday
-from .serializers import ProfessorsSerializer, TimetableSerializer, HolidaysSerializer, ProfessorsCabinetSerializer
+from .serializers import ProfessorsSerializer, TimetableSerializer, HolidaysSerializer
 
 
 class ProfessorsViewSet(viewsets.ModelViewSet):
