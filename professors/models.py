@@ -16,7 +16,7 @@ class Professors(models.Model):
     surname = models.CharField(max_length=50)
     patronym = models.CharField(max_length=50, blank=True, null=True)
     info = models.TextField()
-    photo = models.ImageField(upload_to='professors/', null=True, blank=True)
+    photo = models.ImageField(upload_to='professors_photos', null=True, blank=True)
     tg_username = models.CharField(max_length=50)
     tg_idbot = models.CharField(max_length=50, null=True, blank=True)
     phone = models.CharField(max_length=20)

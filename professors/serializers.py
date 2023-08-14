@@ -71,3 +71,10 @@ class HolidaysSerializer(serializers.ModelSerializer):
     class Meta:
         model = Holiday
         fields = '__all__'
+
+
+class ProfessorsCabinetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Professors
+        fields = '__all__'
+
