@@ -164,8 +164,13 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
-            'level': 'DEBUG',
+            'level': 'WARNING',  # Записывать только предупреждения и ошибки от Django
             'propagate': True,
+        },
+        'payments': {  # Используйте имя вашего приложения или '__main__' для основного файла
+            'handlers': ['console', 'file'],
+            'level': 'INFO',  # Записывать сообщения уровня INFO и выше для вашего приложения
+            'propagate': False,
         },
     },
 }
