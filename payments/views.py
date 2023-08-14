@@ -37,11 +37,12 @@ class PaymentResultView(View):
             return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
         
         # Обновите статус платежа
+        logger.info(f"Current payment status: {payment.status}")
         if status == 'success':
-            payment.status = 'Completed'
+            payment.status = 'COMPLETED'
         else:
-            payment.status = 'Decline'
-        
+            payment.status = 'DECLINED'
+        logger.info(f"Updated payment status: {payment.status}")        
         payment.save()
         
         return JsonResponse({'status': 'success', 'message': 'Payment status updated successfully'})
