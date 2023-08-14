@@ -127,6 +127,8 @@ class InitiatePaymentView(APIView):
             'pg_amount': str(amount),
             'pg_description': description,  # используем описание, которое мы сформировали ранее
             'pg_salt': pg_salt,
+            'pg_success_url': 'http://13.53.177.204/professors/',
+            'pg_failure_url': 'http://13.53.177.204/students/',
             'pg_currency': 'KGS',
             'pg_request_method': 'POST',            
             'pg_language': 'ru',
