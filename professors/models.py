@@ -15,6 +15,7 @@ class Professors(models.Model):
     firstName = models.CharField(max_length=50)
     surname = models.CharField(max_length=50)
     patronym = models.CharField(max_length=50, blank=True, null=True)
+    subject = ArrayField(models.CharField(max_length=50), blank=True, default=list, null=True)
     info = models.TextField()
     photo = models.ImageField(upload_to='professors_photos', null=True, blank=True)
     tg_username = models.CharField(max_length=50)
@@ -24,6 +25,7 @@ class Professors(models.Model):
     price = models.JSONField(null=True, blank=True) # Stores dictionary-like data
     language = models.CharField(max_length=50)
     experience = models.CharField(max_length=5, choices=EXPERIENCE_CHOICES)
+    classes = ArrayField(models.CharField(max_length=50), blank=True, default=list, null=True)
     
     def __str__(self):
         return self.firstName + ' ' + self.surname
