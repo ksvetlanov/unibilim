@@ -129,7 +129,7 @@ class InitiatePaymentView(APIView):
             'pg_currency': 'KGS',
             'pg_request_method': 'POST',            
             'pg_language': 'ru',
-            'pg_result_url': 'http://13.53.177.204:8000/check_payment/',
+            'pg_result_url': 'http://13.53.177.204/check_payment/',
             'pg_testing_mode': '1',
             'pg_user_id': str(user_id),     
         }
