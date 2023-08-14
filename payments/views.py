@@ -12,17 +12,40 @@ from drf_yasg.utils import swagger_auto_schema
 from students.models import Student
 from professors.models import Professors
 import json
-'''
-class InitiatePaymentView(APIView):
-    def post(self, request, format=None):
-        serializer = InitiatePaymentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+import logging
+from .models import Payments
 
-        student_id = request.user.student.id
-        time_slots = serializer.validated_data.get('time_slots') 
-        amount_per_slot = serializer.validated_data.get('amount') 
-        service = serializer.validated_data.get('service') 
-'''
+@method_decorator(csrf_exempt, name='dispatch')
+class PaymentResultView(View):
+    def post(self, request, *args, **kwargs):
+        # Получите данные из POST-запроса
+        payment_id = request.POST.get('payment_id')
+        status = request.POST.get('status')  # Примерно так, но структура может отличаться
+        logger = logging.getLogger(__name__)
+
+        # ... в вашем представлении ...
+        body = request.body.decode('utf-8')
+        logger.info(f"Received payment notification: {body}")
+        # Найдите соответствующий платеж в вашей базе данных
+        try:
+            payment = Payments.objects.get(id=payment_id)
+        except Payments.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
+        
+        # Обновите статус платежа
+        if status == 'success':
+            payment.status = 'Completed'
+        else:
+            payment.status = 'Decline'
+        
+        payment.save()
+        
+        return JsonResponse({'status': 'success', 'message': 'Payment status updated successfully'})
+
 
 class InitiatePaymentView(APIView):
     @swagger_auto_schema(
@@ -104,8 +127,9 @@ class InitiatePaymentView(APIView):
             'pg_description': description,  # используем описание, которое мы сформировали ранее
             'pg_salt': pg_salt,
             'pg_currency': 'KGS',
-            'pg_request_method': 'POST',
+            'pg_request_method': 'POST',            
             'pg_language': 'ru',
+            'pg_result_url': 'http://13.53.177.204:8000/check_payment/',
             'pg_testing_mode': '1',
             'pg_user_id': str(user_id),     
         }
