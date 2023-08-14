@@ -44,4 +44,4 @@ class Student(models.Model):
 
 
     def __str__(self):
-        return f"{self.firstname} {self.surname} {self.status}"
+        return f"{self.firstname} {self.surname} {self.status} {self.pk}"

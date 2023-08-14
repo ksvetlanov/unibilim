@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Professors, Timetable, Holiday
 import datetime 
 from django.contrib.auth.models import User
+from meetings.models import Meetings
+from students.models import Student
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -72,4 +74,9 @@ class HolidaysSerializer(serializers.ModelSerializer):
         model = Holiday
         fields = '__all__'
 
+
+class ProfessorsMyStudentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = '__all__'
 

@@ -26,8 +26,7 @@ class Professors(models.Model):
     experience = models.CharField(max_length=5, choices=EXPERIENCE_CHOICES)
     
     def __str__(self):
-        return self.firstName + ' ' + self.surname
-
+        return f'{self.firstName} {self.surname} {self.pk}'
 class Timetable(models.Model):
     professor = models.ForeignKey(Professors, on_delete=models.CASCADE)
     monday = ArrayField(models.TimeField(), blank=True, default=list, null=True)
