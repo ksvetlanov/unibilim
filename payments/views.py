@@ -18,6 +18,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 import logging
 from .models import Payments
+from meetings.models import Meetings
+import datetime
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
@@ -40,6 +42,14 @@ class PaymentResultView(View):
         logger.info(f"Current payment status: {payment.status}")
         if status == 'success':
             payment.status = 'COMPLETED'
+            for slot in payment.time_slots:
+                meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
+                Meetings.objects.create(
+                    student=payment.student,
+                    professor=payment.professor,
+                    datetime=meeting_time,
+                    status='PENDING'
+        )
         else:
             payment.status = 'DECLINED'
         logger.info(f"Updated payment status: {payment.status}")        
@@ -89,7 +99,8 @@ class InitiatePaymentView(APIView):
             description=description,
             service=service,
             status='PENDING',
-            professor=professor
+            professor=professor,
+            time_slots=time_slots,
         )
 
         payment_data = self.initiate_payment(total_amount, description, student_id, payment.id)
