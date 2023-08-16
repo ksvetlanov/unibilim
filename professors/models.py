@@ -28,8 +28,7 @@ class Professors(models.Model):
     classes = ArrayField(models.CharField(max_length=50), blank=True, default=list, null=True)
     
     def __str__(self):
-        return self.firstName + ' ' + self.surname
-
+        return f'{self.firstName} {self.surname} {self.pk}'
 class Timetable(models.Model):
     professor = models.ForeignKey(Professors, on_delete=models.CASCADE)
     monday = ArrayField(models.TimeField(), blank=True, default=list, null=True)

@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-)5z-5dg(1zun+^)ixdd=ww1lrcuy9=ivd36avb#nxgk4!z7&_p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -100,8 +100,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'unibilim',
         'USER': 'postgres',
-        'PASSWORD':  '290111208dj',#'315920it',
-        'HOST':  'db', #'localhost', #
+        'PASSWORD':'290111208dj', #'315920it'
+        'HOST':'localhost',
         'PORT': 5432,
     }
 }
