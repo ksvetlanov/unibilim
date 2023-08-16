@@ -1,7 +1,7 @@
 from django.db import models
 from students.models import Student
 from professors.models import Professors
-from django.contrib.postgres.fields import JSONField
+
  
 
 class Payments(models.Model):
@@ -11,7 +11,7 @@ class Payments(models.Model):
     professor = models.ForeignKey(Professors, on_delete=models.CASCADE, related_name="professor_payments")
     description = models.TextField()
     service = models.CharField(max_length=255)
-    time_slots = JSONField(blank=True, null=True)
+    time_slots = models.JSONField(blank=True, null=True)
     #student_request = models.ForeignKey(StudentRequest, on_delete=models.CASCADE, related_name="payments")
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
