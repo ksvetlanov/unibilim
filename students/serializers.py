@@ -80,8 +80,8 @@ class OTPVerificationSerializer(serializers.Serializer):
         return value
 
 class MeetingsSerializerStudent(serializers.ModelSerializer):
-    student_firstname = serializers.CharField(source='student.firstname', read_only=True)
-    student_lastname = serializers.CharField(source='student.surname', read_only=True)
+    # student_firstname = serializers.CharField(source='student.firstname', read_only=True)
+    # student_lastname = serializers.CharField(source='student.surname', read_only=True)
     professor_firstname = serializers.CharField(source='professor.firstname', read_only=True)
     professor_lastname = serializers.CharField(source='professor.surname', read_only=True)
     year = serializers.SerializerMethodField()
@@ -91,7 +91,7 @@ class MeetingsSerializerStudent(serializers.ModelSerializer):
 
     class Meta:
         model = Meetings
-        fields = ['student_firstname', 'student_lastname', 'professor_firstname', 'professor_lastname', 'year', 'month', 'day', 'time', 'status', 'duration']
+        fields = ['professor_firstname', 'professor_lastname', 'year', 'month', 'day', 'time', 'jitsiLink','subject']
 
     def get_year(self, obj):
         return obj.datetime.year
@@ -104,6 +104,7 @@ class MeetingsSerializerStudent(serializers.ModelSerializer):
 
     def get_time(self, obj):
         return obj.datetime.strftime('%H:%M:%S')  # Форматирование времени в часы:минуты:секунды
+
 
 
 
