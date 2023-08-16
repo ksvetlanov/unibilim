@@ -36,8 +36,11 @@ class Meetings(models.Model):
         # Вернем получившийся хеш в виде строки
         return hash_object.hexdigest()
 
+
+
     def save(self, *args, **kwargs):
-        date_obj = datetime.datetime.strptime(self.datetime, "%Y-%m-%dT%H:%M:%S").date()
+        date_obj = self.datetime.date()
         self.day_of_week = date_obj.strftime('%A')
         self.jitsiLink = "https://meet.jit.si/" + str(self.generate_hash({self.professor.surname},{self.student.surname},{self.datetime}))
         super(Meetings, self).save(*args, **kwargs)
+
