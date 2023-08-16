@@ -3,6 +3,7 @@ from students.models import Student
 from professors.models import Professors
 from datetime import timedelta
 import hashlib
+import datetime
 
 class Meetings(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="student_meetings")
@@ -14,6 +15,8 @@ class Meetings(models.Model):
         ('ACCEPTED', 'Accepted'),
         ('DECLINED', 'Declined'),
     ]
+    subject = models.CharField(max_length=50)
+    day_of_week = models.CharField(max_length=50, null=True)
     status = models.CharField(
         max_length=8,
         choices=STATUS_CHOICES,
@@ -33,5 +36,7 @@ class Meetings(models.Model):
         # Вернем получившийся хеш в виде строки
         return hash_object.hexdigest()
 
-    def __save__(self):        
+    def __save__(self): 
+        date_obj = datetime.datetime.strptime(self.datetime, "%Y-%m-%dT%H:%M:%S").date()
+        self.day_of_week = date_obj.strftime('%A')
         self.jitsiLink = "https://meet.jit.si/" + str(self.generate_hash({self.professor.surname},{self.student.surname},{self.datetime}))
