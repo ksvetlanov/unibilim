@@ -27,7 +27,7 @@ class Meetings(models.Model):
     
     def __str__(self):
         return f'Профессор({self.professor.firstName} {self.professor.surname}) - студент({self.student.firstname} {self.student.surname}) - {self.datetime}'
-    
+    @staticmethod
     def generate_hash(student_name, professor_name, date):
         # Соединим все входные данные в одну строку
         data = f'{student_name}{professor_name}{date}'
@@ -41,6 +41,6 @@ class Meetings(models.Model):
     def save(self, *args, **kwargs):
         date_obj = self.datetime.date()
         self.day_of_week = date_obj.strftime('%A')
-        self.jitsiLink = "https://meet.jit.si/" + str(self.generate_hash({self.professor.surname},{self.student.surname},{self.datetime}))
+        self.jitsiLink = "https://meet.jit.si/" + str(Meetings.generate_hash(self.professor.surname, self.student.surname, str(self.datetime)))
         super(Meetings, self).save(*args, **kwargs)
 
