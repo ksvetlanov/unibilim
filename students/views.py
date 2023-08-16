@@ -152,12 +152,13 @@ class OTPVerificationView(APIView):
             'Content-Type': 'application/json'
         }
 
-        session = SessionStore(request.session.session_key)
-        transaction_id = session.get('transaction_id')
-        token_from_server = get_token_from_server(transaction_id)
+        try:
+            student = Student.objects.get(otp_token=token)
+        except Student.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         data = {
-            'token': token_from_server,
+            'token': token,
             'code': code
         }
 
@@ -166,8 +167,6 @@ class OTPVerificationView(APIView):
         print(response_data)
 
         if response_data.get('status') == 0 and response_data.get('description') == 'Valid Code':
-            transaction_id = session.get('transaction_id')
-            student = Student.objects.get(user__username=transaction_id)
             student.status = True
             student.save()
 
@@ -175,6 +174,7 @@ class OTPVerificationView(APIView):
                             status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Проверка неуспешна'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class StudentMeetingsView(APIView):
