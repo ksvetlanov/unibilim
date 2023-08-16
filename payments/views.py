@@ -45,6 +45,7 @@ class PaymentResultView(View):
             for slot in payment.time_slots:
                 meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
                 Meetings.objects.create(
+                    subject=payment.service,
                     student=payment.student,
                     professor=payment.professor,
                     datetime=meeting_time,
