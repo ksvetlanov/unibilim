@@ -13,7 +13,7 @@ class MeetingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meetings
-        fields = ['student_firstname','student_lastname','professor_firstname', 'professor_lastname', 'year', 'month', 'day', 'time', 'jitsiLink','subject']
+        fields = ['student_firstname','student_lastname','professor_firstname', 'professor_lastname','day_of_week', 'year', 'month', 'day', 'time', 'jitsiLink','subject']
 
     def get_year(self, obj):
         return obj.datetime.year
