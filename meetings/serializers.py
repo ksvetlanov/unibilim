@@ -6,6 +6,7 @@ class MeetingsSerializer(serializers.ModelSerializer):
     student_lastname = serializers.CharField(source='student.surname', read_only=True)
     professor_firstname = serializers.CharField(source='professor.firstName', read_only=True)
     professor_lastname = serializers.CharField(source='professor.surname', read_only=True)
+    professor_info = serializers.CharField(source='professor.info', read_only=True)
     year = serializers.SerializerMethodField()
     month = serializers.SerializerMethodField()
     day = serializers.SerializerMethodField()
@@ -13,7 +14,7 @@ class MeetingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meetings
-        fields = ['student_firstname','student_lastname','professor_firstname', 'professor_lastname','day_of_week', 'year', 'month', 'day', 'time', 'jitsiLink','subject']
+        fields = ['student_firstname','student_lastname','professor_firstname', 'professor_lastname', professor_info','day_of_week', 'year', 'month', 'day', 'time', 'jitsiLink','subject']
 
     def get_year(self, obj):
         return obj.datetime.year
