@@ -131,7 +131,7 @@ class InitiatePaymentView(APIView):
         pg_salt = ''.join(pg_salt)
 
         pg_merchant_id = 530056  # замените на ваш идентификатор мерчанта
-        secret_key = '' 
+        secret_key = 'BDHwOaU4Kbl1UE3M' 
 
         request = {
             'pg_order_id': str(payment_id),  # преобразовываем user_id в строку, так как все значения должны быть строками
