@@ -81,6 +81,7 @@ class ProfessorsMyStudentsSerializer(serializers.ModelSerializer):
 
 
 class ProfessorsCabinetSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField()  
     class Meta:
         model = Professors
         fields = '__all__'
