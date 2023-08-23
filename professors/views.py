@@ -43,7 +43,7 @@ class HolidaysViewSet(viewsets.ModelViewSet):
 class CabinetView(generics.RetrieveAPIView):
     queryset = Professors.objects.all()
     serializer_class = ProfessorsSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    
 
     def get_object(self):
         user = self.request.user
