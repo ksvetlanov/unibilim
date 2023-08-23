@@ -174,3 +174,7 @@ LOGGING = {
         },
     },
 }
+# settings.py
+
+MEDIA_URL = '/media/'  # URL для медиа-файлов
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Путь до папки с медиа-файлами
