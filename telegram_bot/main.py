@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from .settings_bot import TOKEN
 from .commands import start_command, get_current_username
 from .database import get_user, sorted_meetings, get_meeting_professors, get_meeting_students, get_telegram_id
+from collections import defaultdict
+
 
 # Устанавливаем уровень логирования
 logging.basicConfig(level=logging.INFO)
@@ -20,35 +22,43 @@ dp.middleware.setup(LoggingMiddleware())
 
 
 # Регистрируем обработчики команд
-
-
 dp.register_message_handler(start_command, commands=['start'])
+
+# В функции send_notification измените часть с ожиданием
+notifications_sent = defaultdict(bool)
+last_notifications = {}
 
 
 async def send_notification(chat_id, username, meeting_time, meeting_link):
-    print("Sending notification...")
+    print("Отправка уведомления...")
     current_time = datetime.now(pytz.utc)  # Получаем текущее время с учетом UTC
 
     time_until_meeting = meeting_time - current_time
-    print("Time until meeting:", time_until_meeting, meeting_time)
+    print("Время до встречи:", time_until_meeting, meeting_time)
 
-    if timedelta(minutes=30) <= time_until_meeting <= timedelta(minutes=30, seconds=59):
-        print("Sending 30 minutes reminder...")
-        await bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
+    if time_until_meeting > timedelta(seconds=0):
+        if timedelta(minutes=30) <= time_until_meeting <= timedelta(minutes=30, seconds=59):
+            print("Отправка напоминания на 30 минут...")
+            await bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
 
-    if time_until_meeting <= timedelta(seconds=0):
-        print("Waiting until meeting time...")
-        await asyncio.sleep(-time_until_meeting.total_seconds())  # Ожидание до начала встречи
+        print("Дождаться времени встречи...")
+        event = asyncio.Event()
+        await asyncio.sleep(time_until_meeting.total_seconds())
+        event.set()
 
-        # Отправка ссылки на встречу
-        await bot.send_message(chat_id=chat_id,
-                               text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
-        print("Meeting link sent.")
+        last_notification_time = last_notifications.get(meeting_time, None)
+        if last_notification_time is None or (current_time - last_notification_time).total_seconds() >= 60 * 30:
+            # Отправка ссылки на встречу
+            await bot.send_message(chat_id=chat_id,
+                                   text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
+            print("Ссылка на встречу отправлена.")
+            last_notifications[meeting_time] = current_time
+    else:
+        print("Время встречи уже прошло. Нет необходимости отправлять уведомление.")
 
 
 async def schedule_check_and_send():
     current_username = get_current_username()
-    print(current_username, 'main')# Получаем текущее значение username
     if current_username:
         user_data = get_user(current_username)
         if user_data['user_type'] == 'student':

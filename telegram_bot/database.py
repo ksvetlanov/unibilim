@@ -73,14 +73,12 @@ def get_meeting_professors(professor_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        today = datetime.now().date()
         query = """
         SELECT *
         FROM meetings_meetings
         WHERE professor_id = %s
-        AND DATE(datetime) = %s
         """
-        cursor.execute(query, (professor_id, today))
+        cursor.execute(query, (professor_id,))
 
         meetings = cursor.fetchall()
 
@@ -98,6 +96,7 @@ def get_meeting_students(student_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
 
         query = """
         SELECT *

@@ -22,16 +22,13 @@ async def start_command(message: types.Message):
         if user_data:
             if user_data['user_type'] == 'student':
                 update_student_data(user_data['username'], user.id)
-                await message.reply(f"Привет {user_data['username']} {user_data['user_type']}")
+                await message.reply(f"Привет {user_data['username']}")
                 update_current_username(user_data['username'])
 
             elif user_data['user_type'] == 'professor':
                 update_professor_data(user_data['username'], user.id)
-                meetings = sorted_meetings(get_meeting_professors(user_data['id']))
-                idd = get_telegram_id(user_data['username'])
-                await message.reply(f"Привет {user_data['username']} {user_data['user_type']} {meetings} {idd}")
+                await message.reply(f"Привет {user_data['username']}")
                 update_current_username(user_data['username'])
-                print(current_username)
 
         else:
             await message.reply(f"Пользователь не найден в базе данных. Посетите этот сайт: {LINK_TO_WEBSITE}")
