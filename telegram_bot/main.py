@@ -20,13 +20,12 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
 
-
 # Регистрируем обработчики команд
 dp.register_message_handler(start_command, commands=['start'])
 
 # В функции send_notification измените часть с ожиданием
 notifications_sent = defaultdict(bool)
-last_notifications = {}
+last_notification_time = {}
 
 
 async def send_notification(chat_id, username, meeting_time, meeting_link):
@@ -37,22 +36,23 @@ async def send_notification(chat_id, username, meeting_time, meeting_link):
     print("Время до встречи:", time_until_meeting, meeting_time)
 
     if time_until_meeting > timedelta(seconds=0):
-        if timedelta(minutes=30) <= time_until_meeting <= timedelta(minutes=30, seconds=59):
-            print("Отправка напоминания на 30 минут...")
-            await bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
+        last_notification = last_notification_time.get(meeting_time, None)
+        if last_notification is None or (current_time - last_notification).total_seconds() >= 60 * 30:
+            # Отправка напоминания на 30 минут
+            if timedelta(minutes=30) <= time_until_meeting <= timedelta(minutes=30, seconds=59):
+                print("Отправка напоминания на 30 минут...")
+                await bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
 
-        print("Дождаться времени встречи...")
-        event = asyncio.Event()
-        await asyncio.sleep(time_until_meeting.total_seconds())
-        event.set()
+            print("Дождаться времени встречи...")
+            event = asyncio.Event()
+            await asyncio.sleep(time_until_meeting.total_seconds())
+            event.set()
 
-        last_notification_time = last_notifications.get(meeting_time, None)
-        if last_notification_time is None or (current_time - last_notification_time).total_seconds() >= 60 * 30:
             # Отправка ссылки на встречу
             await bot.send_message(chat_id=chat_id,
                                    text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
             print("Ссылка на встречу отправлена.")
-            last_notifications[meeting_time] = current_time
+            last_notification_time[meeting_time] = current_time
     else:
         print("Время встречи уже прошло. Нет необходимости отправлять уведомление.")
 
