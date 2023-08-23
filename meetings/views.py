@@ -17,8 +17,8 @@ class MeetingsViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if hasattr(user, 'student'):
             return Meetings.objects.filter(student=user.student)
-        elif hasattr(user, 'professor'):
-            return Meetings.objects.filter(professor=user.professor)
+        elif hasattr(user, 'professors'):
+            return Meetings.objects.filter(professor=user.professors)
         else:
             return Meetings.objects.none() 
 
