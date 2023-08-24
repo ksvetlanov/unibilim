@@ -62,18 +62,22 @@ async def send_notification(chat_id, username, meeting_time, meeting_link):
         print("Время встречи уже прошло. Нет необходимости отправлять уведомление.")
 
 
+schedule_lock = asyncio.Lock()
+
+
 async def schedule_check_and_send():
-    current_username = get_current_username()
-    if current_username:
-        user_data = get_user(current_username)
-        if user_data['user_type'] == 'student':
-            student_meetings = sorted_meetings(get_meeting_students(user_data['id']))
-            chat_id = get_telegram_id(user_data['username'])
-            await send_notification(chat_id, user_data['username'], student_meetings[0][1], student_meetings[0][2])
-        elif user_data['user_type'] == 'professor':
-            professor_meetings = sorted_meetings(get_meeting_professors(user_data['id']))
-            chat_id = get_telegram_id(user_data['username'])
-            await send_notification(chat_id, user_data['username'], professor_meetings[0][1], professor_meetings[0][2])
+    async with schedule_lock:
+        current_username = get_current_username()
+        if current_username:
+            user_data = get_user(current_username)
+            if user_data['user_type'] == 'student':
+                student_meetings = sorted_meetings(get_meeting_students(user_data['id']))
+                chat_id = get_telegram_id(user_data['username'])
+                await send_notification(chat_id, user_data['username'], student_meetings[0][1], student_meetings[0][2])
+            elif user_data['user_type'] == 'professor':
+                professor_meetings = sorted_meetings(get_meeting_professors(user_data['id']))
+                chat_id = get_telegram_id(user_data['username'])
+                await send_notification(chat_id, user_data['username'], professor_meetings[0][1], professor_meetings[0][2])
 
 
 # Запуск бота
