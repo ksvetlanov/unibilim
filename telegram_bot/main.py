@@ -73,12 +73,19 @@ async def schedule_check_and_send():
             if user_data['user_type'] == 'student':
                 student_meetings = sorted_meetings(get_meeting_students(user_data['id']))
                 chat_id = get_telegram_id(user_data['username'])
-                await send_notification(chat_id, user_data['username'], student_meetings[0][1], student_meetings[0][2])
+                await send_notifications(chat_id, user_data['username'], student_meetings)
             elif user_data['user_type'] == 'professor':
                 professor_meetings = sorted_meetings(get_meeting_professors(user_data['id']))
                 chat_id = get_telegram_id(user_data['username'])
-                await send_notification(chat_id, user_data['username'], professor_meetings[0][1], professor_meetings[0][2])
+                await send_notifications(chat_id, user_data['username'], professor_meetings)
 
+
+async def send_notifications(chat_id, username, meetings):
+    current_time = datetime.now(pytz.utc)
+    for meeting in meetings:
+        meeting_time = meeting[1]
+        if meeting_time >= current_time:
+            await send_notification(chat_id, username, meeting_time, meeting[2])
 
 # Запуск бота
 if __name__ == '__main__':
