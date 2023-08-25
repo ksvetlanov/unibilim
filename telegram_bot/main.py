@@ -6,9 +6,9 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils import executor
 import pytz
 from datetime import datetime, timedelta
-from telegram_bot.settings_bot import TOKEN
-from telegram_bot.commands import start_command, get_current_username
-from telegram_bot.database import get_user, sorted_meetings, get_meeting_professors, get_meeting_students, get_telegram_id
+from settings_bot import TOKEN
+from commands import start_command, get_current_username
+from database import get_user, sorted_meetings, get_meeting_professors, get_meeting_students, get_telegram_id
 from collections import defaultdict
 
 
