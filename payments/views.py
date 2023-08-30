@@ -161,9 +161,9 @@ class InitiatePaymentView(APIView):
         # Вы можете реализовать проверку ответа здесь, если это необходимо
         response = requests.post('https://api.freedompay.money/init_payment.php', data=request)
         root = ET.fromstring(response)
-        pg_redirect_url = root.find('pg_redirect_url').text
-        return pg_redirect_url
-        #return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
+        pg_redirect_url = root.find('pg_redirect_u"1:"r').text
+        #return pg_redirect_url
+        return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
 
 
 class PaymentsViewSet(viewsets.ModelViewSet):
