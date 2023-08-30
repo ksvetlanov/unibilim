@@ -20,6 +20,8 @@ import logging
 from .models import Payments
 from meetings.models import Meetings
 import datetime
+import xml.etree.ElementTree as ET
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
@@ -158,7 +160,9 @@ class InitiatePaymentView(APIView):
 
         # Вы можете реализовать проверку ответа здесь, если это необходимо
         response = requests.post('https://api.freedompay.money/init_payment.php', data=request)
-
+        # root = ET.fromstring(response)
+        # pg_redirect_url = root.find('pg_redirect_url').text
+        # return pg_redirect_url
         return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
 
 
