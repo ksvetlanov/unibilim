@@ -163,7 +163,7 @@ class InitiatePaymentView(APIView):
         root = ET.fromstring(response)
         pg_redirect_url = root.find('pg_redirect_url').text
         return pg_redirect_url
-        №return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
+        #return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
 
 
 class PaymentsViewSet(viewsets.ModelViewSet):
