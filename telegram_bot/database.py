@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 
 import psycopg2
-from settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
+from .settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
 
 
 def get_db_connection():
@@ -154,6 +154,23 @@ def sorted_meetings(meetings):
     return sort_meetings
 
 
+def update_meeting_status(meeting_id, new_status):
+    try:
+        conn = get_db_connection()  # Получите соединение с базой данных
+        cursor = conn.cursor()
+
+        sql_query = """
+            UPDATE meetings_meetings
+            SET status = %s
+            WHERE id = %s
+        """
+        cursor.execute(sql_query, (new_status, meeting_id))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Database Error:", e)
 
 
 
