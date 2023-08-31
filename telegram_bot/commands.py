@@ -1,8 +1,8 @@
 # commands.py
 import psycopg2
 from aiogram import types
-from .database import get_user, update_student_data, update_professor_data, get_meeting_professors, sorted_meetings, get_telegram_id
-from .settings_bot import LINK_TO_WEBSITE
+from telegram_bot.database import get_user, update_student_data, update_professor_data, get_meeting_professors, sorted_meetings, get_telegram_id
+from telegram_bot.settings_bot import LINK_TO_WEBSITE
 
 
 current_username = None
