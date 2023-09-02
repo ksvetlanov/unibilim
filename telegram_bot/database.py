@@ -1,7 +1,7 @@
 #database.py
 from datetime import datetime, timezone
 import psycopg2
-from telegram_bot.settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
+from .settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
 
 
 def get_db_connection():
@@ -95,7 +95,6 @@ def get_meeting_students(student_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
 
         query = """
         SELECT *

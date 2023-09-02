@@ -6,11 +6,10 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils import executor
 import pytz
 from datetime import datetime, timedelta
-from telegram_bot.settings_bot import TOKEN
-from telegram_bot.commands import start_command, get_current_username
-from telegram_bot.database import get_user, sorted_meetings, get_meeting_professors, get_meeting_students, get_telegram_id, update_meeting_status
+from .settings_bot import TOKEN
+from .commands import start_command, active_users
+from .database import get_user, sorted_meetings, get_meeting_professors, get_meeting_students, get_telegram_id, update_meeting_status
 from collections import defaultdict
-
 
 # Устанавливаем уровень логирования
 logging.basicConfig(level=logging.INFO)
@@ -26,44 +25,11 @@ dp.register_message_handler(start_command, commands=['start'])
 # В функции send_notification измените часть с ожиданием
 notifications_sent = defaultdict(bool)
 last_notification_time = {}
-global_meeting_data = {}
+question_data = {}
 
 
 async def send_question(user_id, meeting_id):
-    global global_meeting_data
-    global_meeting_data = {'user_id': user_id, 'meeting_id': meeting_id}
-    print(f'send_question global_meeting_data {global_meeting_data}')
-
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(types.KeyboardButton('Да'), types.KeyboardButton('Нет'))
-
-    await bot.send_message(user_id, "Прошла ли встреча?", reply_markup=markup)
-
-
-@dp.message_handler(lambda message: message.text in ['Да', 'Нет'])
-async def handle_answer(message: types.Message):
-    global global_meeting_data
-    selected_option = message.text
-    print(f'handle_answer global_meeting_data {global_meeting_data}')
-
-    if 'user_id' in global_meeting_data:
-        meeting_id = global_meeting_data['meeting_id']
-
-        if selected_option == 'Да':
-            await message.answer("Встреча прошла успешно!")
-            print('Встреча прошла успешно!')
-            meeting_status = 'ACCEPTED'
-            update_meeting_status(meeting_id, meeting_status)
-
-        elif selected_option == 'Нет':
-            await message.answer("Встреча не состоялась. Попробуем еще раз позже.")
-            print('Встреча не состоялась. Попробуем еще раз позже.')
-            meeting_status = 'DECLINED'
-            update_meeting_status(meeting_id, meeting_status)
-
-        global_meeting_data = {}  # Сбрасываем данные из глобальной переменной
-    else:
-        await message.answer("Извините, что-то пошло не так. Попробуйте позже.")
+    pass
 
 
 async def send_notification(chat_id, username, meeting_time, meeting_link, meeting_duration, meeting_id):
@@ -110,17 +76,19 @@ schedule_lock = asyncio.Lock()
 
 async def schedule_check_and_send():
     async with schedule_lock:
-        current_username = get_current_username()
-        if current_username:
-            user_data = get_user(current_username)
+        tasks = []
+        for username in active_users:
+            print(username)
+            user_data = get_user(username)
             if user_data['user_type'] == 'student':
                 student_meetings = sorted_meetings(get_meeting_students(user_data['id']))
                 chat_id = get_telegram_id(user_data['username'])
-                await send_notifications(chat_id, user_data['username'], student_meetings)
+                tasks.append(send_notifications(chat_id, user_data['username'], student_meetings))
             elif user_data['user_type'] == 'professor':
                 professor_meetings = sorted_meetings(get_meeting_professors(user_data['id']))
                 chat_id = get_telegram_id(user_data['username'])
-                await send_notifications(chat_id, user_data['username'], professor_meetings)
+                tasks.append(send_notifications(chat_id, user_data['username'], professor_meetings))
+        await asyncio.gather(*tasks)
 
 
 async def send_notifications(chat_id, username, meetings):

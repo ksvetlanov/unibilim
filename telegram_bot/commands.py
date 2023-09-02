@@ -1,19 +1,25 @@
 # commands.py
 import psycopg2
 from aiogram import types
-from telegram_bot.database import get_user, update_student_data, update_professor_data, get_meeting_professors, sorted_meetings, get_telegram_id
-from telegram_bot.settings_bot import LINK_TO_WEBSITE
+from .database import get_user, update_student_data, update_professor_data, get_meeting_professors, sorted_meetings, get_telegram_id
+from .settings_bot import LINK_TO_WEBSITE
 
 
-current_username = None
+active_users = {}
 
 
-def update_current_username(username):
-    global current_username
-    current_username = username
+def add_user_to_active(username, user_id):
+    active_users[username] = user_id
+
+
+# Функция для удаления пользователя из словаря
+def remove_user_from_active(username):
+    if username in active_users:
+        del active_users[username]
 
 
 async def start_command(message: types.Message):
+
     try:
         user = message.from_user
         chat_username = message.chat.username
@@ -23,12 +29,14 @@ async def start_command(message: types.Message):
             if user_data['user_type'] == 'student':
                 update_student_data(user_data['username'], user.id)
                 await message.reply(f"Привет {user_data['username']}")
-                update_current_username(user_data['username'])
+                add_user_to_active(user_data['username'], user.id)
+                print('start_command',active_users)
 
             elif user_data['user_type'] == 'professor':
                 update_professor_data(user_data['username'], user.id)
                 await message.reply(f"Привет {user_data['username']}")
-                update_current_username(user_data['username'])
+                add_user_to_active(user_data['username'], user.id)
+                print('start_command', active_users)
 
         else:
             await message.reply(f"Пользователь не найден в базе данных. Посетите этот сайт: {LINK_TO_WEBSITE}")
@@ -38,6 +46,3 @@ async def start_command(message: types.Message):
     except Exception as e:
         await message.reply(f"Произошла неизвестная ошибка: {e}")
 
-
-def get_current_username():
-    return current_username
