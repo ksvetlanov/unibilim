@@ -102,7 +102,7 @@ DATABASES = {
         'NAME': 'unibilim',
         'USER': 'postgres',
         'PASSWORD':'290111208dj', #'315920it'
-        'HOST':'db',
+        'HOST':'localhost',
         'PORT': 5432,
     }
 }

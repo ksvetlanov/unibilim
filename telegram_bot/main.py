@@ -1,110 +1,86 @@
 import asyncio
 import logging
+import datetime
 import aiocron
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils import executor
-import pytz
-from datetime import datetime, timedelta
 from .settings_bot import TOKEN
 from .commands import start_command, active_users
-from .database import get_user, sorted_meetings, get_meeting_professors, get_meeting_students, get_telegram_id, update_meeting_status
-from collections import defaultdict
+from .database import sort_meetings, get_meeting_students, get_meeting_professors, get_user, get_telegram_id
+import pytz
 
-# Устанавливаем уровень логирования
+
 logging.basicConfig(level=logging.INFO)
-
-# Инициализируем бота и диспетчера
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
 
-# Регистрируем обработчики команд
+
 dp.register_message_handler(start_command, commands=['start'])
 
-# В функции send_notification измените часть с ожиданием
-notifications_sent = defaultdict(bool)
-last_notification_time = {}
-question_data = {}
+link_sent = {}
 
 
-async def send_question(user_id, meeting_id):
+async def send_question(chat_id, meeting_id):
     pass
 
 
-async def send_notification(chat_id, username, meeting_time, meeting_link, meeting_duration, meeting_id):
-    print("Отправка уведомления...")
-    current_time = datetime.now(pytz.utc)  # Получаем текущее время с учетом UTC
+async def sending_message(chat_id, username, meeting_appointed_time, meeting_link, meeting_duration, meeting_id):
 
-    # Коррекция времени встречи на 6 часов назад
-    corrected_meeting_time = meeting_time - timedelta(hours=6)
+    # текущее время кыргызстана
+    kyrgyzstan_timezone = pytz.timezone('Asia/Bishkek')
+    current_time_kyrgyzstan = datetime.datetime.now(kyrgyzstan_timezone)
 
-    time_until_meeting = corrected_meeting_time - current_time
-    print("Время до встречи:", time_until_meeting, corrected_meeting_time)
+    # приобразование назначенного времени встречи в время для кыргызстана
+    meeting_time_kyrgyzstan = meeting_appointed_time - datetime.timedelta(hours=6)
 
-    if time_until_meeting > timedelta(seconds=0):
-        last_notification = last_notification_time.get(corrected_meeting_time, None)
-        if last_notification is None or (current_time - last_notification).total_seconds() >= 60 * 30:
-            if timedelta(minutes=30) <= time_until_meeting <= timedelta(minutes=30, seconds=59):
-                print("Отправка напоминания на 30 минут...")
-                await bot.send_message(chat_id=chat_id,
-                                       text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
+    time_difference = meeting_time_kyrgyzstan - current_time_kyrgyzstan
+    print(f'Назначенное время встречи : {meeting_time_kyrgyzstan}\nВстреча начнется через : {time_difference}')
 
-            print("Дождаться времени встречи...")
-            event = asyncio.Event()
-            await asyncio.sleep(time_until_meeting.total_seconds())
-            event.set()
+    time_difference_minutes = (meeting_time_kyrgyzstan - current_time_kyrgyzstan).total_seconds() / 60
 
-            # Проверяем, что это первое уведомление для данной встречи
-            if last_notification_time.get(meeting_time) != current_time:
-                # Отправка ссылки на встречу
-                await bot.send_message(chat_id=chat_id,
-                                       text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
-                print("Ссылка на встречу отправлена.")
-                print(meeting_duration)
-                await asyncio.sleep(meeting_duration.total_seconds())
-                await send_question(chat_id, meeting_id)
-                print('опрос отправлен')
-                await asyncio.sleep(1)
+    if time_difference_minutes <= 1:
+        print(f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
+        await bot.send_message(chat_id=chat_id,
+                               text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
 
-                last_notification_time[meeting_time] = current_time
-    else:
-        print("Время встречи уже прошло. Нет необходимости отправлять уведомление.")
-
-schedule_lock = asyncio.Lock()
+    elif 29 * 60 <= time_difference.total_seconds() <= 30 * 60:
+        print(f"Отправка напоминания на 30 минут... пользователю : {username}")
+        await bot.send_message(chat_id=chat_id,
+                               text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
+        print("Дождаться времени встречи...")
 
 
-async def schedule_check_and_send():
-    async with schedule_lock:
-        tasks = []
+async def main():
+    if active_users:
+        print(f'Активные пользователи main : {active_users}')
         for username in active_users:
-            print(username)
             user_data = get_user(username)
             if user_data['user_type'] == 'student':
-                student_meetings = sorted_meetings(get_meeting_students(user_data['id']))
+                student_meetings = sort_meetings(get_meeting_students(user_data['id']))
                 chat_id = get_telegram_id(user_data['username'])
-                tasks.append(send_notifications(chat_id, user_data['username'], student_meetings))
+                if student_meetings is not None:
+                    print(f'Обработка в main пользователя : {user_data["username"]}')
+                    await sending_message(chat_id, user_data['username'], student_meetings[1], student_meetings[2], student_meetings[6], student_meetings[0])
+
+                else:
+                    print('нет встреч')
+
             elif user_data['user_type'] == 'professor':
-                professor_meetings = sorted_meetings(get_meeting_professors(user_data['id']))
+                professor_meetings = sort_meetings(get_meeting_professors(user_data['id']))
                 chat_id = get_telegram_id(user_data['username'])
-                tasks.append(send_notifications(chat_id, user_data['username'], professor_meetings))
-        await asyncio.gather(*tasks)
+                if professor_meetings is not None:
+                    print(f'Обработка в main пользователя : {user_data["username"]}')
+                    await sending_message(chat_id, user_data['username'], professor_meetings[1], professor_meetings[2], professor_meetings[6], professor_meetings[0])
+
+                else:
+                    print('нет встреч')
+
+    else:
+        print('Нет активных пользователей')
 
 
-async def send_notifications(chat_id, username, meetings):
-    current_time = datetime.now(pytz.utc)
-    for meeting in meetings:
-        meeting_id = meeting[0]
-        meeting_time = meeting[1]
-        meeting_link = meeting[2]
-        meeting_duration = meeting[6]
-        if meeting_time >= current_time:
-            await send_notification(chat_id, username, meeting_time, meeting_link, meeting_duration, meeting_id)
-
-# Запуск бота
 if __name__ == '__main__':
-    # Регистрация планировщика задач
-    aiocron.crontab('* * * * *', func=schedule_check_and_send)
-
-    # Запуск бота
+    aiocron.crontab('* * * * *', func=main)
     executor.start_polling(dp, skip_updates=True)

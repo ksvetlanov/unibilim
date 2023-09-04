@@ -1,7 +1,7 @@
-#database.py
-from datetime import datetime, timezone
 import psycopg2
 from .settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
+import datetime
+import pytz
 
 
 def get_db_connection():
@@ -51,6 +51,30 @@ def update_student_data(telegram_username, telegram_id):
         print("Database Error:", e)
 
 
+def get_meeting_students(student_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+        SELECT *
+        FROM meetings_meetings
+        WHERE student_id = %s
+        """
+        cursor.execute(query, (student_id,))
+
+        meetings = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return meetings
+
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+        return None
+
+
 def update_professor_data(telegram_username, tg_idbot):
     try:
         conn = get_db_connection()
@@ -78,30 +102,6 @@ def get_meeting_professors(professor_id):
         WHERE professor_id = %s
         """
         cursor.execute(query, (professor_id,))
-
-        meetings = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return meetings
-
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
-        return None
-
-
-def get_meeting_students(student_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        query = """
-        SELECT *
-        FROM meetings_meetings
-        WHERE student_id = %s
-        """
-        cursor.execute(query, (student_id,))
 
         meetings = cursor.fetchall()
 
@@ -144,14 +144,6 @@ def get_telegram_id(username):
         return None
 
 
-def sorted_meetings(meetings):
-
-    current_time = datetime.now(timezone.utc)
-
-    sort_meetings = sorted(meetings, key=lambda x: abs(x[1] - current_time))
-    return sort_meetings
-
-
 def update_meeting_status(meeting_id, new_status):
     try:
         conn = get_db_connection()  # Получите соединение с базой данных
@@ -171,5 +163,10 @@ def update_meeting_status(meeting_id, new_status):
         print("Database Error:", e)
 
 
-
-
+def sort_meetings(meetings):
+    current_time_utc = datetime.datetime.now(pytz.utc)
+    current_time_utc += datetime.timedelta(hours=6)
+    valid_meetings = [meeting for meeting in meetings if meeting[1] > current_time_utc]
+    sorted_meetings = sorted(valid_meetings, key=lambda x: abs(x[1] - current_time_utc))
+    for meeting in sorted_meetings:
+        return meeting
