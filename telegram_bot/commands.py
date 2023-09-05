@@ -11,6 +11,11 @@ def add_user_to_active(username, user_id):
     active_users[username] = user_id
 
 
+def remove_user_from_active(username):
+    if username in active_users:
+        del active_users[username]
+
+
 async def start_command(message: types.Message):
 
     try:
