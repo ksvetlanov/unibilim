@@ -21,10 +21,17 @@ dp.middleware.setup(LoggingMiddleware())
 dp.register_message_handler(start_command, commands=['start'])
 
 meeting_info = {}
+initial_time = datetime.datetime.strptime("01:00:00", "%H:%M:%S")
 
 
-def add_meeting_info(chat_id, username, meeting_id, meeting_status):
-    meeting_info[meeting_id] = {'chat_id': chat_id, 'username': username, 'meeting_id': meeting_id, 'meeting_status': meeting_status}
+def subtract_one_minute():
+    global initial_time
+    initial_time -= datetime.timedelta(minutes=1)
+    return initial_time
+
+
+def add_meeting_main(chat_id, username, meeting_id, meeting_status, meeting_duration):
+    meeting_info[meeting_id] = {'chat_id': chat_id, 'username': username, 'meeting_id': meeting_id, 'meeting_status': meeting_status, 'meeting_duration': meeting_duration}
 
 
 def remove_meeting_info(meeting_id):
@@ -61,7 +68,6 @@ async def handle_user_response(message: types.Message):
 
 
 async def sending_message(chat_id, username, meeting_appointed_time, meeting_link, meeting_duration, meeting_id, meeting_status):
-    print(meeting_appointed_time)
     # текущее время кыргызстана
     kyrgyzstan_timezone = pytz.timezone('Asia/Bishkek')
     current_time_kyrgyzstan = datetime.datetime.now(kyrgyzstan_timezone)
@@ -78,7 +84,7 @@ async def sending_message(chat_id, username, meeting_appointed_time, meeting_lin
         print(f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
         await bot.send_message(chat_id=chat_id,
                                text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
-        add_meeting_info(chat_id, username, meeting_id, meeting_status)
+        add_meeting_main(chat_id, username, meeting_id, meeting_status, meeting_duration)
 
     elif 29 * 60 <= time_difference.total_seconds() <= 30 * 60:
         print(f"Отправка напоминания на 30 минут... пользователю : {username}")
@@ -100,7 +106,7 @@ async def main():
                     print(f'Обработка в main пользователя : {user_data["username"]}')
                     tasks.append(sending_message(chat_id, user_data['username'], student_meetings[1], student_meetings[2], student_meetings[6], student_meetings[0], student_meetings[5]))
                 else:
-                    print('нет встреч')
+                    print(f"У пользователя {user_data['user_type']} нет встреч")
 
             elif user_data['user_type'] == 'professor':
                 professor_meetings = sort_meetings(get_meeting_professors(user_data['id']))
@@ -109,17 +115,19 @@ async def main():
                     print(f'Обработка в main пользователя : {user_data["username"]}')
                     tasks.append(sending_message(chat_id, user_data['username'], professor_meetings[1], professor_meetings[2], professor_meetings[6], professor_meetings[0], professor_meetings[5]))
                 else:
-                    print('нет встреч')
+                    print(f"У пользователя {user_data['user_type']} нет встреч")
 
             if meeting_info:
-                print('обработка meeting_info')
-                await asyncio.sleep(60 * 60)
+                print('Обработка send_question')
                 meeting_data = list(meeting_info.keys())
                 for data in meeting_data:
                     user_data = meeting_info[data]
                     chat_id = user_data['chat_id']
                     username = user_data['username']
                     meeting_id = user_data['meeting_id']
+                    timer = subtract_one_minute()
+                    print(f'Опрос придет пользователю {username} через : {timer.strftime("%H:%M:%S")}')
+                    await asyncio.sleep(60 * 60)
                     await send_question(chat_id)
                     remove_meeting_info(meeting_id)
 
