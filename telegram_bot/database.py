@@ -91,6 +91,37 @@ def update_professor_data(telegram_username, tg_idbot):
         print("Database Error:", e)
 
 
+def get_professor_data(username):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, tg_username, tg_idbot
+            FROM professors_professors
+            WHERE tg_username = %s
+        """, (username,))
+        user_data = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        user_type = 'professor'
+        # Проверяем, найдены ли данные
+        if user_data:
+            # Создаем словарь с именем пользователя и его данными
+            user_dict = {
+                'id': user_data[0],
+                'username': user_data[1],
+                'chat_id': user_data[2],
+                'user_type': user_type,
+            }
+            return user_dict
+        else:
+            return None
+    except Exception as e:
+        print(f"Ошибка при выполнении SQL-запроса: {str(e)}")
+        return None
+
+
 def get_meeting_professors(professor_id):
     try:
         conn = get_db_connection()
@@ -170,6 +201,4 @@ def sort_meetings(meetings):
     sorted_meetings = sorted(valid_meetings, key=lambda x: abs(x[1] - current_time_utc))
     for meeting in sorted_meetings:
         return meeting
-
-
 
