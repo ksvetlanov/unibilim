@@ -31,13 +31,13 @@ async def start_command(message: types.Message):
                 print(f'Активные пользователи : {active_users}')
             elif user_data['user_type'] == 'professor':
                 update_professor_data(user_data['username'], user.id)
-                await message.reply(f"Привет {user_data['username']}")
+                await message.reply(f"Привет, {user_data['username']}! Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
                 add_user_to_active(user_data['username'], user.id)
                 print(f'Активные пользователи start : {active_users}')
         else:
             await message.reply(f"Пользователь не найден в базе данных. Посетите этот сайт: {LINK_TO_WEBSITE}")
 
     except psycopg2.Error as db_error:
-        await message.reply(f"Произошла ошибка при обращении к базе данных: {db_error}")
+        print(f"Произошла ошибка при обращении к базе данных: {db_error}")
     except Exception as e:
-        await message.reply(f"Произошла неизвестная ошибка: {e}")
+        print(f"Произошла неизвестная ошибка: {e}")

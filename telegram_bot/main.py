@@ -65,7 +65,7 @@ async def send_question(user_id):
 
 @dp.message_handler(lambda message: message.text.lower() in ['да', 'нет'])
 async def handle_user_response(message: types.Message):
-    user_id = str(message.from_user.id)  # Преобразуйте user_id в строку
+    user_id = str(message.from_user.id)
     response = message.text.lower()
 
     try:
@@ -76,15 +76,15 @@ async def handle_user_response(message: types.Message):
 
             if response == 'да':
                 await message.answer("Встреча прошла успешно!", reply_markup=ReplyKeyboardRemove())
-                print('Встреча прошла успешно!')
                 meeting_status = 'ACCEPTED'
+                print(f'Встреча не состоялась. статус : {meeting_status}')
                 update_meeting_status(meeting_id, meeting_status)
                 remove_meeting_info(username)
 
             elif response == 'нет':
-                await message.answer("Встреча не состоялась. Попробуем еще раз позже.", reply_markup=ReplyKeyboardRemove())
-                print('Встреча не состоялась. Попробуем еще раз позже.')
+                await message.answer("Встреча не состоялась.", reply_markup=ReplyKeyboardRemove())
                 meeting_status = 'DECLINED'
+                print(f'Встреча не состоялась. статус : {meeting_status}')
                 update_meeting_status(meeting_id, meeting_status)
                 remove_meeting_info(username)
         else:
@@ -131,7 +131,7 @@ async def main():
                 chat_id = get_telegram_id(user_data['username'])
                 if student_meetings is not None:
                     print(f'Обработка в main пользователя : {user_data["username"]}')
-                    tasks.append(sending_message(chat_id, user_data['username'], student_meetings[1], student_meetings[2], student_meetings[6], student_meetings[0], student_meetings[5]))
+                    tasks.append(sending_message(chat_id, user_data['username'], student_meetings[1], student_meetings[2], student_meetings[6], student_meetings[0]))
                 else:
                     print(f"У пользователя {user_data['username']} нет встреч")
 
@@ -152,16 +152,18 @@ async def main():
                     meeting_info_data = meeting_info[username]  # Получаем данные из словаря по username
                     meeting_id = meeting_info_data['meeting_id']
                     chat_id = meeting_info_data['chat_id']
+                    meeting_duration = meeting_info_data['meeting_duration']
                     professor_data = get_professor_data(username)
                     if professor_data:
                         if professor_data['user_type'] == 'professor':
                             professors_meeting_data(username, chat_id, meeting_id)
-                            await asyncio.sleep(1)
+                            await asyncio.sleep(meeting_duration.total_seconds())
                             reverse_time()
                             await send_question(professor_data['chat_id'])
+                            remove_meeting_info(username)
 
                         else:
-                            print('None professor in professor_data')
+                            print('текущий пользователь не professor')
                     else:
                         print('None professor_data')
                 else:
