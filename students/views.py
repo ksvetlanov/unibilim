@@ -1,38 +1,45 @@
 from rest_framework import serializers
-import requests
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.response import Response
-from .serializers import StudentRegisterSerializer, OTPVerificationSerializer, RegionSerializer, DistrictSerializer, \
-    CitySerializer
-from django.contrib.sessions.backends.db import SessionStore
-from django.shortcuts import redirect
-from rest_framework import status
-from rest_framework.views import APIView
+from .serializers import StudentRegisterSerializer
 import json
-from .models import Student, District, Region
-from rest_framework import generics
 from .models import Region, District, City
 from .serializers import RegionSerializer, DistrictSerializer, CitySerializer
 from rest_framework.permissions import AllowAny
+from rest_framework import status
+from django.contrib.sessions.backends.db import SessionStore
+import requests
+from rest_framework import generics
+from .models import Student
+from rest_framework.permissions import IsAuthenticated
+from meetings.models import Meetings
+from .serializers import MeetingsSerializerStudent
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
 
 class RegionListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
 
+
 class DistrictListView(generics.ListAPIView):
     serializer_class = DistrictSerializer
     permission_classes = [AllowAny]
+
     def get_queryset(self):
         region_id = self.kwargs['region_id']
         return District.objects.filter(region__id=region_id)
 
+
 class CityListView(generics.ListAPIView):
     serializer_class = CitySerializer
     permission_classes = [AllowAny]
+
     def get_queryset(self):
         district_id = self.kwargs['district_id']
         return City.objects.filter(district__id=district_id)
+
+
 def save_token_to_server(transaction_id, token):
     try:
         student = Student.objects.get(user__username=transaction_id)
@@ -100,6 +107,7 @@ def verify_otp_code(token, code):
     else:
         return False
 
+
 class StudentRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
     serializer_class = StudentRegisterSerializer
@@ -115,7 +123,6 @@ class StudentRegistrationAPIView(APIView):
             send_otp_code(transaction_id, phone)
             request.session['transaction_id'] = transaction_id
 
-            
             student = Student.objects.get(user__username=transaction_id)
             token = student.otp_token
             # Отправить токен вместе с сообщением об успешной регистрации
@@ -145,12 +152,13 @@ class OTPVerificationView(APIView):
             'Content-Type': 'application/json'
         }
 
-        session = SessionStore(request.session.session_key)
-        transaction_id = session.get('transaction_id')
-        token_from_server = get_token_from_server(transaction_id)
+        try:
+            student = Student.objects.get(otp_token=token)
+        except Student.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         data = {
-            'token': token_from_server,
+            'token': token,
             'code': code
         }
 
@@ -159,8 +167,6 @@ class OTPVerificationView(APIView):
         print(response_data)
 
         if response_data.get('status') == 0 and response_data.get('description') == 'Valid Code':
-            transaction_id = session.get('transaction_id')
-            student = Student.objects.get(user__username=transaction_id)
             student.status = True
             student.save()
 
@@ -171,4 +177,12 @@ class OTPVerificationView(APIView):
 
 
 
+class StudentMeetingsView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        student = request.user.student
+        meetings = Meetings.objects.filter(student=student)
+
+        serializer = MeetingsSerializerStudent(meetings, many=True)
+        return Response(serializer.data)

@@ -51,12 +51,14 @@ class LoginView(APIView):
             try:
                 user.professors
                 response_data['role'] = 'professor'
+                response_data['id'] = user.professors.id
             except Professors.DoesNotExist:
                 pass
 
             try:
                 user.student
                 response_data['role'] = 'student'
+                response_data['id'] = user.student.id
             except Student.DoesNotExist:
                 pass
 

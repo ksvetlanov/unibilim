@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework import routers
 from rest_framework_nested import routers as nested_routers
-from .views import ProfessorsViewSet, TimetableViewSet, HolidaysViewSet, CabinetView
+from .views import ProfessorsViewSet, TimetableViewSet, HolidaysViewSet, CabinetView, ProfessorsMyStudents
 
 router = routers.DefaultRouter()
 router.register(r'professors', ProfessorsViewSet, basename='professors')
@@ -10,7 +10,7 @@ router.register(r'holidays', HolidaysViewSet, basename='holidays')
 
 urlpatterns = [
     path('professors/cabinet/', CabinetView.as_view(), name='professors_cabinet-view'),
-
+    path('professors/my_students/', ProfessorsMyStudents.as_view(), name='professors_my_students-view'),
 ] + router.urls
 
 

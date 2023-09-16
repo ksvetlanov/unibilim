@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -100,8 +101,10 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'unibilim',
         'USER': 'postgres',
-        'PASSWORD': '315920it',# '290111208dj',#
-        'HOST':  'localhost', #'db', #
+        # 'PASSWORD': '315920it',# '290111208dj',#
+        # 'HOST':  'localhost', #'db', #
+        'PASSWORD':'290111208dj', #'315920it'
+        'HOST':'db',
         'PORT': 5432,
     }
 }
@@ -174,3 +177,7 @@ LOGGING = {
         },
     },
 }
+# settings.py
+
+MEDIA_URL = '/media/'  # URL для медиа-файлов
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Путь до папки с медиа-файлами

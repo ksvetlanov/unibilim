@@ -3,6 +3,7 @@ from students.models import Student
 from professors.models import Professors
 from datetime import timedelta
 import hashlib
+import datetime
 
 class Meetings(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="student_meetings")
@@ -14,6 +15,8 @@ class Meetings(models.Model):
         ('ACCEPTED', 'Accepted'),
         ('DECLINED', 'Declined'),
     ]
+    subject = models.CharField(max_length=50)
+    day_of_week = models.CharField(max_length=50, null=True)
     status = models.CharField(
         max_length=8,
         choices=STATUS_CHOICES,
@@ -24,7 +27,7 @@ class Meetings(models.Model):
     
     def __str__(self):
         return f'Профессор({self.professor.firstName} {self.professor.surname}) - студент({self.student.firstname} {self.student.surname}) - {self.datetime}'
-    
+    @staticmethod
     def generate_hash(student_name, professor_name, date):
         # Соединим все входные данные в одну строку
         data = f'{student_name}{professor_name}{date}'
@@ -33,5 +36,11 @@ class Meetings(models.Model):
         # Вернем получившийся хеш в виде строки
         return hash_object.hexdigest()
 
-    def __save__(self):        
-        self.jitsiLink = "https://meet.jit.si/" + str(self.generate_hash({self.professor.surname},{self.student.surname},{self.datetime}))
+
+
+    def save(self, *args, **kwargs):
+        date_obj = self.datetime.date()
+        self.day_of_week = date_obj.strftime('%A')
+        self.jitsiLink = "https://meet.jit.si/" + str(Meetings.generate_hash(self.professor.surname, self.student.surname, str(self.datetime)))
+        super(Meetings, self).save(*args, **kwargs)
+

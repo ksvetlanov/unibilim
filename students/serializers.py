@@ -1,6 +1,8 @@
+from professors.models import Professors
 from .models import Region, District, City
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from meetings.models import Meetings
 from .models import Student
 
 
@@ -72,9 +74,38 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
 
 
 class OTPVerificationSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=6)
+    code = serializers.CharField(max_length=4)
 
     def validate_code(self, value):
         return value
+
+class MeetingsSerializerStudent(serializers.ModelSerializer):
+    # student_firstname = serializers.CharField(source='student.firstname', read_only=True)
+    # student_lastname = serializers.CharField(source='student.surname', read_only=True)
+    professor_firstname = serializers.CharField(source='professor.firstname', read_only=True)
+    professor_lastname = serializers.CharField(source='professor.surname', read_only=True)
+    year = serializers.SerializerMethodField()
+    month = serializers.SerializerMethodField()
+    day = serializers.SerializerMethodField()
+    time = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Meetings
+        fields = ['professor_firstname', 'professor_lastname', 'year', 'month', 'day','day_of_week', 'time', 'jitsiLink','subject']
+
+    def get_year(self, obj):
+        return obj.datetime.year
+
+    def get_month(self, obj):
+        return obj.datetime.month
+
+    def get_day(self, obj):
+        return obj.datetime.day
+
+    def get_time(self, obj):
+        return obj.datetime.strftime('%H:%M:%S')  # Форматирование времени в часы:минуты:секунды
+
+
+
 
 
