@@ -71,6 +71,15 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
         student = Student.objects.create(**validated_data)
         return student
 
+    def validate_username(self, value):
+        # Проверяем, что имя пользователя не пустое
+        if not value:
+            raise serializers.ValidationError('Имя пользователя не может быть пустым.')
+        # Проверяем, что имя пользователя уникально
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError('Имя пользователя уже занято.')
+        # Возвращаем значение, если все в порядке
+        return value
 
 
 class OTPVerificationSerializer(serializers.Serializer):
