@@ -2,28 +2,28 @@ import requests
 import json
 import xml.etree.ElementTree as ET
 # URL вашего API-представления
-url = 'http://13.53.177.204//init_payment/'
-url = 'http://13.53.177.204/meetings/3'
+url = 'http://127.0.0.1:8000//init_payment/'
+#url = 'http://13.53.177.204/meetings/3'
 # Здесь укажите свои данные
 data = {
-    'professor_id': '1',
+    'professor_id': '3',
     'time_slots': ['2023-07-20T14:30:00', '2023-07-21T15:00:00'],
-    'amount': 3233,
-    'service': 'math'
+    'amount': 32,
+    'service': 'цуефа'
 }
 
 headers = {
-    'Authorization': 'Token de4e43c3ad218159ea0c872a33e9072ec85268e9',  # Если ваше API требует аутентификацию, замените YOUR_ACCESS_TOKEN на ваш токен
+    'Authorization': 'Token 2b979d442373b980c517e489fd667222c9cfb9e0',  # Если ваше API требует аутентификацию, замените YOUR_ACCESS_TOKEN на ваш токен
     'Content-Type': 'application/json'
 }
 
-response = requests.get(url, headers=headers)
-
+response = requests.post(url, data=json.dumps(data), headers=headers)
+print(response.text)
 
 
 #print(response.status_code)
 #json_response = response.json()
-print(response.text)
+
 
 # xml_str = ''.join(json_response['payment_data'])
 # root = ET.fromstring(xml_str)

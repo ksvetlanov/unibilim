@@ -23,42 +23,41 @@ import datetime
 import xml.etree.ElementTree as ET
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class PaymentResultView(View):
-    def post(self, request, *args, **kwargs):
-        # Получите данные из POST-запроса
-        payment_id = request.POST.get('payment_id')
-        status = request.POST.get('status')  # Примерно так, но структура может отличаться
-        logger = logging.getLogger(__name__)
-
-        # ... в вашем представлении ...
-        #body = request.body.decode('utf-8')
-        # logger.info(f"Received payment notification: {body}")
-        # # Найдите соответствующий платеж в вашей базе данных
-        try:
-            payment = Payments.objects.get(id=payment_id)
-        except Payments.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
-        
-        # # Обновите статус платежа
-        # logger.info(f"Current payment status: {payment.status}")
-        # if status == 'success':
-        payment.status = 'COMPLETED'
-        for slot in payment.time_slots:
-            meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
-            Meetings.objects.create(
-                subject=payment.service,
-                student=payment.student,
-                professor=payment.professor,
-                datetime=meeting_time,
-                status='PENDING'
-        )
-        # else:
-        #     payment.status = 'DECLINED'
-        # logger.info(f"Updated payment status: {payment.status}")        
-        # payment.save()
-        
-        return JsonResponse({'status': 'success', 'message': 'Payment status updated successfully'})
+#@method_decorator(csrf_exempt, name='dispatch')
+#class PaymentResultView(View):
+def post(request, *args, **kwargs):
+    # Получите данные из POST-запроса
+    payment_id = request#.POST.get('payment_id')
+    #status = request.POST.get('status')  # Примерно так, но структура может отличаться
+    #logger = logging.getLogger(__name__)
+    # ... в вашем представлении ...
+    #body = request.body.decode('utf-8')
+    # logger.info(f"Received payment notification: {body}")
+    # # Найдите соответствующий платеж в вашей базе данных
+    try:
+        payment = Payments.objects.get(id=payment_id)
+    except Payments.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
+    
+    # # Обновите статус платежа
+    # logger.info(f"Current payment status: {payment.status}")
+    # if status == 'success':
+    payment.status = 'COMPLETED'
+    for slot in payment.time_slots:
+        meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
+        Meetings.objects.create(
+            subject=payment.service,
+            student=payment.student,
+            professor=payment.professor,
+            datetime=meeting_time,
+            status='PENDING'
+    )
+    # else:
+    #     payment.status = 'DECLINED'
+    # logger.info(f"Updated payment status: {payment.status}")        
+    # payment.save()
+    
+    return JsonResponse({'status': 'success', 'message': 'Payment status updated successfully'})
 
 
 class InitiatePaymentView(APIView):
@@ -75,6 +74,7 @@ class InitiatePaymentView(APIView):
 
     def post(self, request, format=None):
         student_id = request.user.student.id
+        token = request.auth.key
         student = Student.objects.get(id=student_id)
         professor_id = request.data.get('professor_id') 
         professor = Professors.objects.get(id=professor_id)
@@ -82,9 +82,8 @@ class InitiatePaymentView(APIView):
         amount_per_slot = request.data.get('amount') 
         service = request.data.get('service') 
 
-        total_amount = len(time_slots) * amount_per_slot
+        total_amount = len(time_slots) * int(amount_per_slot)
 
-        
 
         # формирование описания платежа
         description_lines = []
@@ -93,7 +92,8 @@ class InitiatePaymentView(APIView):
 
         description = '\n'.join(description_lines)
         
-        
+        print("Total Amount:", total_amount)
+        print("Description:", description)
 
         # создаем запись платежа в базе данных
         payment = Payments.objects.create(
@@ -106,13 +106,13 @@ class InitiatePaymentView(APIView):
             time_slots=time_slots,
         )
 
-        payment_data = self.initiate_payment(total_amount, description, student_id, payment.id)
+        #payment_data = self.initiate_payment(total_amount, description, student_id, payment.id)
+        payment_data = payment.id
         # возвращаем ответ с информацией о платеже
         serializer = PaymentsSerializer(payment)
-        
-        return Response({         
-            'payment_data': payment_data
-        })
+
+        post(payment.id)
+        return Response({'payment_data': payment_data})
 
     def initiate_payment(self, amount, description, user_id, payment_id ):
         def make_flat_params_array(arr_params, parent_name=''):
