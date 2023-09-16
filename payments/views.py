@@ -32,31 +32,31 @@ class PaymentResultView(View):
         logger = logging.getLogger(__name__)
 
         # ... в вашем представлении ...
-        body = request.body.decode('utf-8')
-        logger.info(f"Received payment notification: {body}")
-        # Найдите соответствующий платеж в вашей базе данных
+        #body = request.body.decode('utf-8')
+        # logger.info(f"Received payment notification: {body}")
+        # # Найдите соответствующий платеж в вашей базе данных
         try:
             payment = Payments.objects.get(id=payment_id)
         except Payments.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
         
-        # Обновите статус платежа
-        logger.info(f"Current payment status: {payment.status}")
-        if status == 'success':
-            payment.status = 'COMPLETED'
-            for slot in payment.time_slots:
-                meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
-                Meetings.objects.create(
-                    subject=payment.service,
-                    student=payment.student,
-                    professor=payment.professor,
-                    datetime=meeting_time,
-                    status='PENDING'
+        # # Обновите статус платежа
+        # logger.info(f"Current payment status: {payment.status}")
+        # if status == 'success':
+        payment.status = 'COMPLETED'
+        for slot in payment.time_slots:
+            meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
+            Meetings.objects.create(
+                subject=payment.service,
+                student=payment.student,
+                professor=payment.professor,
+                datetime=meeting_time,
+                status='PENDING'
         )
-        else:
-            payment.status = 'DECLINED'
-        logger.info(f"Updated payment status: {payment.status}")        
-        payment.save()
+        # else:
+        #     payment.status = 'DECLINED'
+        # logger.info(f"Updated payment status: {payment.status}")        
+        # payment.save()
         
         return JsonResponse({'status': 'success', 'message': 'Payment status updated successfully'})
 
