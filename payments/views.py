@@ -20,6 +20,8 @@ import logging
 from .models import Payments
 from meetings.models import Meetings
 import datetime
+import xml.etree.ElementTree as ET
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
@@ -45,6 +47,7 @@ class PaymentResultView(View):
             for slot in payment.time_slots:
                 meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")  
                 Meetings.objects.create(
+                    subject=payment.service,
                     student=payment.student,
                     professor=payment.professor,
                     datetime=meeting_time,
@@ -130,7 +133,7 @@ class InitiatePaymentView(APIView):
         pg_salt = ''.join(pg_salt)
 
         pg_merchant_id = 530056  # замените на ваш идентификатор мерчанта
-        secret_key = 'BDHwOaU4Kbl1UE3M'  # замените на ваш секретный ключ
+        secret_key = 'BDHwOaU4Kbl1UE3M' 
 
         request = {
             'pg_order_id': str(payment_id),  # преобразовываем user_id в строку, так как все значения должны быть строками
@@ -157,8 +160,11 @@ class InitiatePaymentView(APIView):
 
         # Вы можете реализовать проверку ответа здесь, если это необходимо
         response = requests.post('https://api.freedompay.money/init_payment.php', data=request)
-
-        return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
+        xml_str = response.text    
+        root = ET.fromstring(xml_str)
+        pg_redirect_url = root.find('pg_redirect_url').text
+        return pg_redirect_url
+        #return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
 
 
 class PaymentsViewSet(viewsets.ModelViewSet):

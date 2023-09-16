@@ -14,11 +14,11 @@ class MeetingsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated] 
 
     def get_queryset(self):
-        user = self.request.user
-        if hasattr(user, 'student'):
-            return Meetings.objects.filter(student=user.student)
-        elif hasattr(user, 'professor'):
-            return Meetings.objects.filter(professor=user.professor)
-        else:
-            return Meetings.objects.none() 
-
+            queryset = Meetings.objects.all()
+            student_id = self.request.query_params.get('student_id', None)
+            professor_id = self.request.query_params.get('professor_id', None)
+            if student_id:
+                queryset = queryset.filter(student__id=student_id)
+            if professor_id:
+                queryset = queryset.filter(professor__id=professor_id)
+            return queryset
