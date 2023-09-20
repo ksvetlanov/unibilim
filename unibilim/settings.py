@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-)5z-5dg(1zun+^)ixdd=ww1lrcuy9=ivd36avb#nxgk4!z7&_p
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+CSRF_TRUSTED_ORIGINS=['https://*.backend-prod.unibilim.kg/']
 
 # Application definition
 
