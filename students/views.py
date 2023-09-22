@@ -61,7 +61,7 @@ def get_token_from_server(transaction_id):
 
 def send_otp_code(transaction_id, phone):
     url = 'https://smspro.nikita.kg/api/otp/send'
-    api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'
+    api_key = '17cd096ba91b288e64ed6512661cb010'
 
     headers = {
         'X-API-KEY': api_key,
@@ -87,7 +87,7 @@ def send_otp_code(transaction_id, phone):
 
 def verify_otp_code(token, code):
     url = 'https://smspro.nikita.kg/api/otp/verify'
-    api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'
+    api_key = '17cd096ba91b288e64ed6512661cb010'
 
     headers = {
         'X-API-KEY': api_key,
@@ -145,7 +145,7 @@ class OTPVerificationView(APIView):
             return Response({'message': 'Token and code are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         url = 'https://smspro.nikita.kg/api/otp/verify'
-        api_key = '92503b1a8d4f6e0e30de3cf9e4e35919'
+        api_key = '17cd096ba91b288e64ed6512661cb010'
 
         headers = {
             'X-API-KEY': api_key,
