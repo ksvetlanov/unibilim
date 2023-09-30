@@ -6,4 +6,4 @@ DB_NAME = 'unibilim'
 DB_USER = 'postgres'
 DB_PASSWORD = '290111208dj'
 
-LINK_TO_WEBSITE = 'http://13.53.177.204/'
+LINK_TO_WEBSITE = 'https://class.unibilim.kg/'
