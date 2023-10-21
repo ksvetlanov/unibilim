@@ -1,7 +1,15 @@
 import psycopg2
 from aiogram import types
+from aiogram.dispatcher.filters.state import State, StatesGroup
 from .settings_bot import LINK_TO_WEBSITE
 from .database import get_user, update_student_data, update_professor_data
+
+
+class MyState(StatesGroup):
+    check_password_db_state = State()
+    check_password_copy_file_state = State()
+    check_name_file_state = State()
+    check_password_list_file_name_state = State()
 
 
 active_users = {}
@@ -41,3 +49,18 @@ async def start_command(message: types.Message):
         print(f"Произошла ошибка при обращении к базе данных: {db_error}")
     except Exception as e:
         print(f"Произошла неизвестная ошибка: {e}")
+
+
+async def backup_command(message: types.Message):
+    await message.reply("Пожалуйста, введите пароль от базы данных.")
+    await MyState.check_password_db_state.set()
+
+
+async def get_copy_file_command(message: types.Message):
+    await message.reply('Пожалуйста, введите пароль')
+    await MyState.check_password_copy_file_state.set()
+
+
+async def get_file_name_command(message: types.Message):
+    await message.reply('Пожалуйста, введите пароль')
+    await MyState.check_password_list_file_name_state.set()

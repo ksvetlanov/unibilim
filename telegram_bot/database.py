@@ -2,6 +2,7 @@ import psycopg2
 from .settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
 import datetime
 import pytz
+import subprocess
 
 
 def get_db_connection():
@@ -202,3 +203,23 @@ def sort_meetings(meetings):
     for meeting in sorted_meetings:
         return meeting
 
+
+def create_postgres_backup():
+    open('backup_file.sql', 'w').close()
+
+    backup_file = 'backup_file.sql'
+
+    # Выполните команду pg_dump для создания резервной копии
+    try:
+        pg_dump_path = r'C:\Program Files\PostgreSQL\15\bin\pg_dump.exe'  # Укажите полный путь к pg_dump
+        subprocess.run([
+            f'{pg_dump_path}',
+            '-h', DB_HOST,
+            '-U', DB_USER,
+            '-d', DB_NAME,
+            '-f', backup_file,
+        ])
+        return backup_file
+    except Exception as e:
+        print(f"Произошла ошибка при создании резервной копии: {e}")
+        return None

@@ -3,30 +3,35 @@ import logging
 import datetime
 import aiocron
 from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.dispatcher.filters import Text
 from aiogram.utils import executor
-from .settings_bot import TOKEN
-from .commands import start_command, active_users
-from .database import sort_meetings, get_meeting_students, get_meeting_professors, get_user, get_telegram_id, get_professor_data, update_meeting_status
 import pytz
-from aiogram.types import ReplyKeyboardRemove
+from .settings_bot import TOKEN
+from .command_handler import start_command, active_users, backup_command, get_copy_file_command, MyState, get_file_name_command
+from .database import sort_meetings, get_meeting_students, get_meeting_professors, get_user, get_telegram_id, get_professor_data
+from .message_handler import meeting_info, add_meeting_main, professors_meeting_data, remove_meeting_info, handle_user_response, check_password_db, check_password_copy_file, check_name_file, check_password_list_file_name
 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 dp.middleware.setup(LoggingMiddleware())
 
 
 dp.register_message_handler(start_command, commands=['start'])
-
-meeting_info = {}
-confirmation_professors = {}
+dp.register_message_handler(backup_command, commands=['backup'])
+dp.register_message_handler(get_copy_file_command, commands=['get_file'])
+dp.register_message_handler(get_file_name_command, commands=['get_file_name'])
+dp.register_message_handler(handle_user_response, Text(equals=['да', 'нет'], ignore_case=True))
+dp.register_message_handler(check_password_db, state=MyState.check_password_db_state)
+dp.register_message_handler(check_password_copy_file, state=MyState.check_password_copy_file_state)
+dp.register_message_handler(check_name_file, state=MyState.check_name_file_state)
+dp.register_message_handler(check_password_list_file_name, state=MyState.check_password_list_file_name_state)
 initial_time = datetime.datetime.strptime("01:00:00", "%H:%M:%S")
-
-
-def professors_meeting_data(username, chat_id, meeting_id,):
-    confirmation_professors[chat_id] = {'chat_id': chat_id, 'username': username, 'meeting_id': meeting_id}
+user_states_copy_file = {}
 
 
 def subtract_one_minute():
@@ -41,16 +46,6 @@ def reverse_time():
     return initial_time
 
 
-def add_meeting_main(chat_id, username, meeting_id, meeting_duration):
-    meeting_info[username] = {'chat_id': chat_id, 'username': username, 'meeting_id': meeting_id, 'meeting_duration': meeting_duration}
-
-
-def remove_meeting_info(username):
-    global meeting_info
-    if username in meeting_info:
-        del meeting_info[username]
-
-
 async def send_question(user_id):
     print('Обработка send_question')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True, one_time_keyboard=True)
@@ -61,37 +56,6 @@ async def send_question(user_id):
         "Прошла ли встреча?",
         reply_markup=markup,
     )
-
-
-@dp.message_handler(lambda message: message.text.lower() in ['да', 'нет'])
-async def handle_user_response(message: types.Message):
-    user_id = str(message.from_user.id)
-    response = message.text.lower()
-
-    try:
-        if user_id in confirmation_professors:
-            professor_data = confirmation_professors[user_id]
-            meeting_id = professor_data['meeting_id']
-            username = professor_data['username']
-
-            if response == 'да':
-                await message.answer("Встреча прошла успешно!", reply_markup=ReplyKeyboardRemove())
-                meeting_status = 'ACCEPTED'
-                print(f'Встреча не состоялась. статус : {meeting_status}')
-                update_meeting_status(meeting_id, meeting_status)
-                remove_meeting_info(username)
-
-            elif response == 'нет':
-                await message.answer("Встреча не состоялась.", reply_markup=ReplyKeyboardRemove())
-                meeting_status = 'DECLINED'
-                print(f'Встреча не состоялась. статус : {meeting_status}')
-                update_meeting_status(meeting_id, meeting_status)
-                remove_meeting_info(username)
-        else:
-            await message.answer("Извините, что-то пошло не так. Попробуйте позже.", reply_markup=ReplyKeyboardRemove())
-    except Exception as e:
-        # Обработка исключения
-        print(f"Произошла ошибка: {str(e)}")
 
 
 async def sending_message(chat_id, username, meeting_appointed_time, meeting_link, meeting_duration, meeting_id):
