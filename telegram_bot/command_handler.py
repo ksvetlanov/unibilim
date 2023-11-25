@@ -1,66 +1,102 @@
-import psycopg2
 from aiogram import types
-from aiogram.dispatcher.filters.state import State, StatesGroup
+import random
 from .settings_bot import LINK_TO_WEBSITE
-from .database import get_user, update_student_data, update_professor_data
 
 
-class MyState(StatesGroup):
-    check_password_db_state = State()
-    check_password_copy_file_state = State()
-    check_name_file_state = State()
-    check_password_list_file_name_state = State()
+class CommandServices:
+
+    async def generate_code(self):
+        return ''.join(random.choice('0123456789') for _ in range(4))
 
 
-active_users = {}
+class CommandHandler:
+    def __init__(self, bot, dp, database, user_db_manager, professor_db_manager, student_db_manager, meeting_db_manager, my_state):
+        self.bot = bot
+        self.dp = dp
+        self.db = database
+        self.user_db_manager = user_db_manager
+        self.professor_db_manager = professor_db_manager
+        self.student_db_manager = student_db_manager
+        self.meeting_db_manager = meeting_db_manager
+        self.command_services = CommandServices()
+        self.my_state = my_state
+        self.active_users = {}
+        self.codes = {}
 
-
-def add_user_to_active(username, user_id):
-    active_users[username] = user_id
-
-
-def remove_user_from_active(username):
-    if username in active_users:
-        del active_users[username]
-
-
-async def start_command(message: types.Message):
-
-    try:
+    async def start_command(self, message: types.Message):
+        await self.db.create_pool()
         user = message.from_user
-        chat_username = message.chat.username
+        username = message.chat.username
+        try:
+            data = await self.user_db_manager.get_user(username)
 
-        user_data = get_user(chat_username)
-        if user_data:
-            if user_data['user_type'] == 'student':
-                update_student_data(user_data['username'], user.id)
-                await message.reply(f"Привет {user_data['username']}")
-                add_user_to_active(user_data['username'], user.id)
-                print(f'Активные пользователи : {active_users}')
-            elif user_data['user_type'] == 'professor':
-                update_professor_data(user_data['username'], user.id)
-                await message.reply(f"Привет, {user_data['username']}! Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
-                add_user_to_active(user_data['username'], user.id)
-                print(f'Активные пользователи start : {active_users}')
-        else:
-            await message.reply(f"Пользователь не найден в базе данных. Посетите этот сайт: {LINK_TO_WEBSITE}")
+            if data:
+                if data['user_type'] == 'professor':
+                    await self.professor_db_manager.update_chat_id(data['username'], user.id)
+                    await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
+                    self.active_users[username] = user.id
+                    print(f'Активные пользователи : {len(self.active_users)}')
 
-    except psycopg2.Error as db_error:
-        print(f"Произошла ошибка при обращении к базе данных: {db_error}")
-    except Exception as e:
-        print(f"Произошла неизвестная ошибка: {e}")
+                elif data['user_type'] == 'student':
+                    await self.student_db_manager.update_chat_id(data['username'], user.id)
+                    await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
+                    self.active_users[username] = user.id
+                    print(f'активные пользователи : {len(self.active_users)}')
+
+            else:
+                await message.answer(f"Пользователь не найден в базе данных. Посетите этот сайт: {LINK_TO_WEBSITE}")
+
+        except Exception as e:
+            print(f"Произошла ошибка start_command: {e}")
+
+    async def backup_command(self, message: types.Message):
+        await message.reply("Пожалуйста, введите пароль от базы данных.")
+        await self.my_state.backup_password.set()
+
+    async def copy_file_command(self, message: types.Message):
+        await message.reply('Пожалуйста, введите пароль')
+        await self.my_state.copy_file_password.set()
+
+    async def file_name_command(self, message: types.Message):
+        await message.reply('Пожалуйста, введите пароль')
+        await self.my_state.file_name_list_password.set()
+
+    async def password_reset_command(self, message: types.Message):
+        await self.db.create_pool()
+        username = message.chat.username
+        try:
+            data = await self.user_db_manager.get_user(username)
+            if data:
+                code = await self.command_services.generate_code()
+                self.codes[message.chat.id] = code
+                await message.reply(f'{code}')
+                await self.my_state.password_reset_code.set()
+
+        except Exception as e:
+            print(f"Произошла ошибка password_reset_command: {e}")
+
+    async def register_commands(self):
+        self.dp.register_message_handler(self.start_command, commands=['start'])
+        self.dp.register_message_handler(self.backup_command, commands=['backup'])
+        self.dp.register_message_handler(self.copy_file_command, commands=['get_file'])
+        self.dp.register_message_handler(self.file_name_command, commands=['get_file_name'])
+        self.dp.register_message_handler(self.password_reset_command, commands=['password_reset'])
 
 
-async def backup_command(message: types.Message):
-    await message.reply("Пожалуйста, введите пароль от базы данных.")
-    await MyState.check_password_db_state.set()
 
 
-async def get_copy_file_command(message: types.Message):
-    await message.reply('Пожалуйста, введите пароль')
-    await MyState.check_password_copy_file_state.set()
 
 
-async def get_file_name_command(message: types.Message):
-    await message.reply('Пожалуйста, введите пароль')
-    await MyState.check_password_list_file_name_state.set()
+
+
+
+
+
+
+
+
+
+
+
+
+

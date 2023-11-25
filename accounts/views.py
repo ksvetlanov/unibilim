@@ -1,4 +1,5 @@
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.hashers import make_password
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +9,8 @@ from students.models import Student
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import AllowAny
+from .serializers import PasswordResetSerializer
+
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -66,3 +69,24 @@ class LoginView(APIView):
         else:
             return Response({'error': 'Invalid Credentials'},
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            user_id = request.data.get("user_id")
+            new_password = request.data.get("new_password")
+
+            try:
+                user = get_user_model().objects.get(id=user_id)
+            except get_user_model().DoesNotExist:
+                return Response({"detail": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.password = make_password(new_password)
+            user.save()
+
+            return Response({"detail": "Password has been updated successfully."}, status=status.HTTP_200_OK)
+

@@ -1,225 +1,241 @@
-import psycopg2
-from .settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
+import asyncpg
+from .settings_bot import DB_HOST, DB_USER, DB_NAME
 import datetime
 import pytz
 import subprocess
 
 
-def get_db_connection():
-    return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
+class DataBase:
+    def __init__(self, db_host, db_user, db_password, db_name):
+        self.db_host = db_host
+        self.db_user = db_user
+        self.db_password = db_password
+        self.db_name = db_name
+        self.pool = None
 
+    async def create_pool(self):
+        self.pool = await asyncpg.create_pool(
+            host=self.db_host,
+            database=self.db_name,
+            user=self.db_user,
+            password=self.db_password
+        )
 
-def get_user(username):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT 'student' AS user_type, id, telegram_username, surname
-            FROM students_student
-            WHERE telegram_username = %s
-            UNION
-            SELECT 'professor' AS user_type, id, tg_username, surname
-            FROM professors_professors
-            WHERE tg_username = %s
-        """, (username, username))
-        user_data = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if user_data:
-            user_type, user_id, username, surname = user_data
-            return {'user_type': user_type, 'id': user_id, 'username': username, 'surname': surname}
-        else:
+    async def execute_query(self, query, *args):
+        try:
+            async with self.pool.acquire() as connection:
+                result = await connection.fetch(query, *args)
+                return result
+        except Exception as e:
+            print(f"Database Error: {e}")
             return None
-    except Exception as e:
-        print("Database Error:", e)
-        return None
 
+    async def backup_db(self):
+        open('backup_file.sql', 'w').close()
 
-def update_student_data(telegram_username, telegram_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE students_student
-            SET telegram_id = %s
-            WHERE telegram_username = %s
-        """, (telegram_id, telegram_username))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("Database Error:", e)
+        backup_file = 'backup_file.sql'
 
-
-def get_meeting_students(student_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        query = """
-        SELECT *
-        FROM meetings_meetings
-        WHERE student_id = %s
-        """
-        cursor.execute(query, (student_id,))
-
-        meetings = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return meetings
-
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
-        return None
-
-
-def update_professor_data(telegram_username, tg_idbot):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE professors_professors
-            SET tg_idbot = %s
-            WHERE tg_username = %s
-        """, (tg_idbot, telegram_username))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("Database Error:", e)
-
-
-def get_professor_data(username):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, tg_username, tg_idbot
-            FROM professors_professors
-            WHERE tg_username = %s
-        """, (username,))
-        user_data = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        user_type = 'professor'
-        # Проверяем, найдены ли данные
-        if user_data:
-            # Создаем словарь с именем пользователя и его данными
-            user_dict = {
-                'id': user_data[0],
-                'username': user_data[1],
-                'chat_id': user_data[2],
-                'user_type': user_type,
-            }
-            return user_dict
-        else:
+        try:
+            pg_dump_path = r'C:\Program Files\PostgreSQL\15\bin\pg_dump.exe'
+            subprocess.run([
+                f'{pg_dump_path}',
+                '-h', DB_HOST,
+                '-U', DB_USER,
+                '-d', DB_NAME,
+                '-f', backup_file,
+            ])
+            return backup_file
+        except Exception as e:
+            print(f"Произошла ошибка при создании резервной копии: {e}")
             return None
-    except Exception as e:
-        print(f"Ошибка при выполнении SQL-запроса: {str(e)}")
-        return None
 
 
-def get_meeting_professors(professor_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+class UserManager:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
 
-        query = """
-        SELECT *
-        FROM meetings_meetings
-        WHERE professor_id = %s
-        """
-        cursor.execute(query, (professor_id,))
-
-        meetings = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return meetings
-
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
-        return None
-
-
-def get_telegram_id(username):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT telegram_id
-            FROM (
-                SELECT telegram_username AS username, telegram_id
+    async def get_user(self, telegram_username):
+        try:
+            query = """
+                SELECT 'student' AS user_type, id, telegram_username, surname, user_id
                 FROM students_student
+                WHERE telegram_username = $1
                 UNION
-                SELECT tg_username AS username, tg_idbot AS telegram_id
+                SELECT 'professor' AS user_type, id, tg_username, surname, user_id
                 FROM professors_professors
-            ) AS combined_data
-            WHERE username = %s
-        """, (username,))
-        user_data = cursor.fetchone()
-        cursor.close()
-        conn.close()
+                WHERE tg_username = $2
+            """
 
-        if user_data:
-            telegram_id = user_data[0]
-            return telegram_id
-        else:
-            return None
-    except Exception as e:
-        print("Database Error:", e)
-        return None
+            data = await self.db_manager.execute_query(query, telegram_username, telegram_username)
+
+            if data:
+                user_type, user_id, telegram_username, surname, user__id = data[0]
+                user_data = {
+                    'user_type': user_type,
+                    'id': user_id,
+                    'username': telegram_username,
+                    'surname': surname,
+                    'user__id': user__id
+                }
+
+                return user_data
+            else:
+                return None
+
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def get_chat_id(self, telegram_username):
+        try:
+            query = """
+                SELECT telegram_id
+                FROM (
+                    SELECT telegram_username AS username, telegram_id
+                    FROM students_student
+                    UNION
+                    SELECT tg_username AS username, tg_idbot AS telegram_id
+                    FROM professors_professors
+                ) AS combined_data
+                WHERE username = $1
+            """
+            data = await self.db_manager.execute_query(query, telegram_username)
+
+            if data:
+                return data[0][0]
+            else:
+                return None
+
+        except Exception as e:
+            print("Database Error:", e)
 
 
-def update_meeting_status(meeting_id, new_status):
-    try:
-        conn = get_db_connection()  # Получите соединение с базой данных
-        cursor = conn.cursor()
+class ProfessorManager(UserManager):
+    def __init__(self, db_manager):
+        super().__init__(db_manager)
 
-        sql_query = """
-            UPDATE meetings_meetings
-            SET status = %s
-            WHERE id = %s
-        """
-        cursor.execute(sql_query, (new_status, meeting_id))
+    async def get_data(self, telegram_username):
+        try:
+            query = """
+                SELECT id, tg_username, tg_idbot
+                FROM professors_professors
+                WHERE tg_username = $1
+            """
 
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("Database Error:", e)
+            data = await self.db_manager.execute_query(query, telegram_username)
+
+            user_type = 'professor'
+
+            if data:
+                return {'id': data[0][0], 'username': data[0][1], 'chat_id': data[0][2], 'user_type': user_type}
+            else:
+                return None
+
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def get_meetings(self, professor_id):
+        try:
+            query = """
+                SELECT *
+                FROM meetings_meetings
+                WHERE professor_id = $1
+            """
+
+            data = await self.db_manager.execute_query(query, professor_id)
+
+            return data
+
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def update_chat_id(self, telegram_username, chat_id):
+        try:
+            query = """
+                UPDATE professors_professors
+                SET tg_idbot = $2
+                WHERE tg_username = $1
+            """
+
+            await self.db_manager.execute_query(query, telegram_username, str(chat_id))
+            print("Update chat_id successful")
+
+        except Exception as e:
+            print("Database Error:", e)
 
 
-def sort_meetings(meetings):
-    current_time_utc = datetime.datetime.now(pytz.utc)
-    current_time_utc += datetime.timedelta(hours=6)
-    valid_meetings = [meeting for meeting in meetings if meeting[1] > current_time_utc]
-    sorted_meetings = sorted(valid_meetings, key=lambda x: abs(x[1] - current_time_utc))
-    for meeting in sorted_meetings:
-        return meeting
+class StudentManager(UserManager):
+    def __init__(self, db_manager):
+        super().__init__(db_manager)
+
+    async def get_meetings(self, student_id):
+        try:
+            query = """
+                SELECT *
+                FROM meetings_meetings
+                WHERE student_id = $1
+            """
+
+            data = await self.db_manager.execute_query(query, student_id)
+
+            return data
+
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def update_chat_id(self, telegram_username, chat_id):
+        try:
+            query = """
+                UPDATE students_student
+                SET telegram_id = $2
+                WHERE telegram_username = $1
+            """
+
+            await self.db_manager.execute_query(query, telegram_username, str(chat_id))
+            print("Update chat_id successful")
+
+        except Exception as e:
+            print("Database Error:", e)
 
 
-def create_postgres_backup():
-    open('backup_file.sql', 'w').close()
+class MeetingManager:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
 
-    backup_file = 'backup_file.sql'
+    async def update_status(self, meeting_id, new_status):
+        try:
+            query = """
+                UPDATE meetings_meetings
+                SET status = $1
+                WHERE id = $2
+            """
 
-    # Выполните команду pg_dump для создания резервной копии
-    try:
-        pg_dump_path = r'C:\Program Files\PostgreSQL\15\bin\pg_dump.exe'  # Укажите полный путь к pg_dump
-        subprocess.run([
-            f'{pg_dump_path}',
-            '-h', DB_HOST,
-            '-U', DB_USER,
-            '-d', DB_NAME,
-            '-f', backup_file,
-        ])
-        return backup_file
-    except Exception as e:
-        print(f"Произошла ошибка при создании резервной копии: {e}")
-        return None
+            await self.db_manager.execute_query(query, new_status, meeting_id)
+            print("Update status successful")
+
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def sorting(self, meetings):
+        try:
+            current_time_utc = datetime.datetime.now(pytz.utc)
+            current_time_utc += datetime.timedelta(hours=6)
+            valid_meetings = [meeting for meeting in meetings if meeting[1] > current_time_utc]
+            sorted_meetings = sorted(valid_meetings, key=lambda x: abs(x[1] - current_time_utc))
+
+            if sorted_meetings:
+                return{
+                    'id': sorted_meetings[0]['id'],
+                    'datetime': sorted_meetings[0]['datetime'],
+                    'jitsiLink': sorted_meetings[0]['jitsiLink'],
+                    'subject': sorted_meetings[0]['subject'],
+                    'day_of_week': sorted_meetings[0]['day_of_week'],
+                    'status': sorted_meetings[0]['status'],
+                    'duration': sorted_meetings[0]['duration'],
+                    'professor_id': sorted_meetings[0]['professor_id'],
+                    'student_id': sorted_meetings[0]['student_id'],
+                }
+            else:
+                return None
+
+        except Exception as e:
+            print("Database Error:", e)
