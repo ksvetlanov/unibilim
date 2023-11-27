@@ -14,11 +14,12 @@ class Meetings(models.Model):
         ('PENDING', 'Pending'),
         ('ACCEPTED', 'Accepted'),
         ('DECLINED', 'Declined'),
+        ('NOT MARKED', 'Not marked'),
     ]
     subject = models.CharField(max_length=50)
     day_of_week = models.CharField(max_length=50, null=True)
     status = models.CharField(
-        max_length=8,
+        max_length=10,
         choices=STATUS_CHOICES,
         default='PENDING',
     )
@@ -35,8 +36,6 @@ class Meetings(models.Model):
         hash_object = hashlib.sha256(data.encode())
         # Вернем получившийся хеш в виде строки
         return hash_object.hexdigest()
-
-
 
     def save(self, *args, **kwargs):
         date_obj = self.datetime.date()

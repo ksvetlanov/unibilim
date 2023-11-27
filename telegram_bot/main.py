@@ -7,6 +7,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.types import ReplyKeyboardRemove
 from aiogram.utils import executor
 from .settings_bot import TOKEN, DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
 from .database import UserManager, StudentManager, ProfessorManager, MeetingManager, DataBase
@@ -42,6 +43,7 @@ class MainBot:
         self.main_bot_services = MainBotServices()
         self.my_state = MyState()
         self.user_tasks = {}
+        self.meeting_not_marked = {}
         self.command_handler = CommandHandler(
                 self.bot,
                 self.dp,
@@ -69,7 +71,7 @@ class MainBot:
             task = self.user_tasks.pop(username)
             task.cancel()
 
-    async def sending_confirmation_message(self, chat_id, username, meeting_appointed_time, meeting_duration):
+    async def sending_confirmation_message(self, chat_id, username, meeting_appointed_time, meeting_duration, meeting_id):
         try:
             kyrgyzstan_timezone = pytz.timezone('Asia/Bishkek')
             current_time_kyrgyzstan = datetime.datetime.now(kyrgyzstan_timezone)
@@ -88,6 +90,14 @@ class MainBot:
                 print(f"Опрос отправлен пользователю {username}")
 
                 self.message_handler.user_data['current_state'] = 'waiting_confirmation'
+
+            elif time_difference_minutes < 0:
+                self.meeting_not_marked[username] = {
+                    'username': username,
+                    'chat_id': chat_id,
+                    'meeting_id': meeting_id
+                }
+                print(f'Пользователь {username} не подтвердил встречу')
 
         except Exception as e:
             print(f"Произошла ошибка sending_confirmation_message: {e}")
@@ -186,10 +196,25 @@ class MainBot:
                                     professor_data['username'],
                                     meeting['meeting_appointed_time'],
                                     meeting['meeting_duration'],
+                                    meeting['meeting_id']
                                 )
 
                             else:
                                 print(f'Пользователь {username} не является учителем, задача остановлена')
+
+                    if self.meeting_not_marked:
+                        for username, data in self.meeting_not_marked.items():
+                            chat_id = data['chat_id']
+                            meeting_id = data['meeting_id']
+                            meeting_status = 'NOT MARKED'
+                            await self.meeting_db_manager.update_status(meeting_id, meeting_status)
+                            del self.message_handler.meeting_data[self.message_handler.confirmation[str(chat_id)]['username']]
+                            del self.message_handler.confirmation[str(chat_id)]
+                            print(f'Время истекло. Встреча отмечена как NOT MARKED. статус: {meeting_status}')
+                            await self.bot.send_message(chat_id, 'Вы не подтвердили встречу!\nвстреча останется не отмечанной', reply_markup=ReplyKeyboardRemove())
+                            self.message_handler.user_data['current_state'] = 'idle'
+
+                        self.meeting_not_marked.clear()
 
                 await asyncio.gather(*self.user_tasks.values())
 
