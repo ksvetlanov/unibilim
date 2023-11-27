@@ -41,6 +41,7 @@ class MainBot:
         self.meeting_db_manager = MeetingManager(self.db)
         self.main_bot_services = MainBotServices()
         self.my_state = MyState()
+        self.user_tasks = {}
         self.command_handler = CommandHandler(
                 self.bot,
                 self.dp,
@@ -62,6 +63,11 @@ class MainBot:
                 self.command_handler,
                 self.my_state
             )
+
+    async def stop_user_task(self, username):
+        if username in self.user_tasks:
+            task = self.user_tasks.pop(username)
+            task.cancel()
 
     async def sending_confirmation_message(self, chat_id, username, meeting_appointed_time, meeting_duration):
         try:
@@ -98,14 +104,19 @@ class MainBot:
             if time_difference_minutes <= 1:
                 print(f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
                 await self.bot.send_message(chat_id=chat_id, text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
-
-                self.message_handler.meeting_data[username] = {
-                    'chat_id': chat_id,
-                    'username': username,
-                    'meeting_id': meeting_id,
-                    'meeting_appointed_time': meeting_appointed_time,
-                    'meeting_duration': meeting_duration
+                await self.db.create_pool()
+                user_data = await self.user_db_manager.get_user(username)
+                if user_data['user_type'] == 'professor':
+                    self.message_handler.meeting_data[username] = {
+                        'chat_id': chat_id,
+                        'username': username,
+                        'meeting_id': meeting_id,
+                        'meeting_appointed_time': meeting_appointed_time,
+                        'meeting_duration': meeting_duration
                     }
+                elif user_data['user_type'] == 'student':
+                    await self.stop_user_task(username)
+                    print(f'Задача для студента {username} остановлена.')
 
             elif 29 * 60 <= time_difference.total_seconds() <= 30 * 60:
                 print(f"Отправка напоминания на 30 минут... пользователю : {username}")
@@ -116,7 +127,6 @@ class MainBot:
             print(f"Произошла ошибка sending_message: {e}")
 
     async def main(self):
-        tasks = []
         try:
             await self.db.create_pool()
             if self.command_handler.active_users:
@@ -129,13 +139,15 @@ class MainBot:
                         meeting_data = await self.meeting_db_manager.sorting(meetings)
                         chat_id = await self.professor_db_manager.get_chat_id(data['username'])
                         if meeting_data is not None:
-                            tasks.append(self.sending_link_message(
+                            task = asyncio.create_task(self.sending_link_message(
                                 chat_id, data['username'],
                                 meeting_data['datetime'],
                                 meeting_data['jitsiLink'],
                                 meeting_data['duration'],
                                 meeting_data['id'])
+
                             )
+                            self.user_tasks[username] = task
 
                         else:
                             print(f"У пользователя {data['username']} нет встреч")
@@ -145,13 +157,14 @@ class MainBot:
                         meeting_data = await self.meeting_db_manager.sorting(meetings)
                         chat_id = await self.student_db_manager.get_chat_id(data['username'])
                         if meeting_data is not None:
-                            tasks.append(self.sending_link_message(
+                            task = asyncio.create_task(self.sending_link_message(
                                 chat_id, data['username'],
                                 meeting_data['datetime'],
                                 meeting_data['jitsiLink'],
                                 meeting_data['duration'],
                                 meeting_data['id'])
                             )
+                            self.user_tasks[username] = task
 
                         else:
                             print(f"У пользователя {data['username']} нет встреч")
@@ -176,9 +189,9 @@ class MainBot:
                                 )
 
                             else:
-                                print('текущий пользователь не учитель')
+                                print(f'Пользователь {username} не является учителем, задача остановлена')
 
-                await asyncio.gather(*tasks)
+                await asyncio.gather(*self.user_tasks.values())
 
             else:
                 print('Нет активных пользователей')

@@ -20,7 +20,7 @@ class CommandHandler:
         self.meeting_db_manager = meeting_db_manager
         self.command_services = CommandServices()
         self.my_state = my_state
-        self.active_users = {}
+        self.active_users = set()
         self.codes = {}
 
     async def start_command(self, message: types.Message):
@@ -34,13 +34,13 @@ class CommandHandler:
                 if data['user_type'] == 'professor':
                     await self.professor_db_manager.update_chat_id(data['username'], user.id)
                     await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
-                    self.active_users[username] = user.id
+                    self.active_users.add(username)
                     print(f'Активные пользователи : {len(self.active_users)}')
 
                 elif data['user_type'] == 'student':
                     await self.student_db_manager.update_chat_id(data['username'], user.id)
                     await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
-                    self.active_users[username] = user.id
+                    self.active_users.add(username)
                     print(f'активные пользователи : {len(self.active_users)}')
 
             else:
