@@ -68,8 +68,9 @@ class CommandHandler:
             data = await self.user_db_manager.get_user(username)
             if data:
                 code = await self.command_services.generate_code()
-                self.codes[message.chat.id] = code
-                await message.reply(f'{code}')
+                await self.user_db_manager.create_reset_password_code(data['user__id'], code)
+                db_code = await self.user_db_manager.get_reset_password_code(data['user__id'])
+                await message.reply(f'Ваш код для сброса пароля : {db_code}')
                 await self.my_state.password_reset_code.set()
 
         except Exception as e:

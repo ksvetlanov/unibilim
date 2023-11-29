@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import PasswordResetCode
 
-# Register your models here.
+admin.site.register(PasswordResetCode)
+
+

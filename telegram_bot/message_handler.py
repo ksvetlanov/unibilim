@@ -159,37 +159,60 @@ class MessageHandler:
             print(f"Произошла ошибка file_name_list_message: {e}")
 
     async def password_reset(self, message: types.Message, state: FSMContext):
-        await self.db.create_pool()
         try:
+            await self.db.create_pool()
             url = 'http://127.0.0.1:8000/accounts/password-reset/'
-            chat_username = message.chat.username
-            new_password = message.text
-            if len(new_password) >= 8:
-                user_data = await self.user_db_manager.get_user(chat_username)
-                data = {"user_id": f'{user_data["user__id"]}', "new_password": f"{new_password}"}
-                response = requests.post(url, data=data)
-                await message.answer(f"{response.status_code} : {response.json()}")
-                await state.finish()
 
+            username = message.chat.username
+            new_password = message.text
+
+            user_data = await self.user_db_manager.get_user(username)
+            code = await self.user_db_manager.get_reset_password_code(user_data['user__id'])
+            token = await self.user_db_manager.get_token(user_data['user__id'])
+
+            data = {
+                'user_id': f'{user_data["user__id"]}',
+                'code': f'{str(code)}',
+                'new_password': f'{str(new_password)}'
+            }
+
+            headers = {
+                'Authorization': f'Token {token}'
+            }
+
+            response = requests.post(url, data=data, headers=headers)
+
+            if response.status_code == 200:
+                await message.reply(f"Пароль успешно изменен :)")
+                await state.finish()
             else:
-                await message.answer("такой пароль не подходит")
+                error_data = response.json()
+                new_password_errors = error_data.get('errors', {}).get('new_password', [])
+                error_messages = ', '.join(
+                    new_password_errors) if new_password_errors else "Нет подробной информации об ошибке."
+                await message.reply(f"{error_messages}")
 
         except Exception as e:
-            print(f"Произошла ошибка file_name_list_message: {e}")
+            print(f"Произошла ошибка password_reset: {e}")
 
     async def password_reset_code(self, message: types.Message, state: FSMContext):
-        chat_id = message.chat.id
-        user_code = message.text
         try:
-            correct_code = self.command_handler.codes.get(chat_id)
-            if user_code == correct_code:
-                await message.answer(f"Верный код! Доступ разрешен\nПридумайте новый пароль !")
-                del self.command_handler.codes[chat_id]
-                await state.finish()
-                await self.my_state.password_reset.set()
+            await self.db.create_pool()
+            username = message.chat.username
+            user_code = message.text
 
-            else:
-                await message.answer("Неверный код. Попробуйте еще раз.")
+            data = await self.user_db_manager.get_user(username)
+
+            if data:
+                correct_code = await self.user_db_manager.get_reset_password_code(data['user__id'])
+                if user_code == correct_code:
+                    await message.answer(f"Верный код!\nПридумайте новый пароль !")
+
+                    await state.finish()
+                    await self.my_state.password_reset.set()
+
+                else:
+                    await message.answer("Неверный код. Попробуйте еще раз.")
 
         except Exception as e:
             print(f"Произошла ошибка password_reset_code: {e}")

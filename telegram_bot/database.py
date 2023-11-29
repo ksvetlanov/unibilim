@@ -85,6 +85,24 @@ class UserManager:
         except Exception as e:
             print("Database Error:", e)
 
+    async def get_token(self, user__id):
+        try:
+            query = """
+                SELECT auth_token.key FROM authtoken_token AS auth_token 
+                JOIN auth_user ON auth_token.user_id = auth_user.id 
+                WHERE auth_user.id = $1
+            """
+
+            data = await self.db_manager.execute_query(query, user__id)
+
+            if data:
+                return data[0][0]
+            else:
+                return None
+
+        except Exception as e:
+            print("Database Error:", e)
+
     async def get_chat_id(self, telegram_username):
         try:
             query = """
@@ -105,6 +123,34 @@ class UserManager:
             else:
                 return None
 
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def create_reset_password_code(self, user__id, code):
+        try:
+            query = """
+                INSERT INTO accounts_passwordresetcode (user_id, code) VALUES ($1, $2)
+            """
+
+            await self.db_manager.execute_query(query, user__id, code)
+            print('Create password reset code successful')
+
+        except Exception as e:
+            print("Database Error:", e)
+
+    async def get_reset_password_code(self, user_id):
+        try:
+            query = """
+                SELECT code FROM accounts_passwordresetcode
+                WHERE user_id = $1
+                ORDER BY created_at DESC
+                LIMIT 1
+            """
+            result = await self.db_manager.execute_query(query, user_id)
+            if result:
+                return result[0]['code']
+            else:
+                return None
         except Exception as e:
             print("Database Error:", e)
 
