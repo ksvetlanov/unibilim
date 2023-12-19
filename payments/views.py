@@ -34,7 +34,7 @@ class PaymentResultView(View):
         order_id = request.POST.get('pg_order_id')
         payment_id = request.POST.get('pg_payment_id')
         status = create_request(payment_id)
-
+        print(status)
         try:
             payment = Payments.objects.get(id=order_id)
             logger.info(f"Current payment status: {payment.status}")
@@ -150,8 +150,8 @@ class InitiatePaymentView(APIView):
             'pg_salt': pg_salt,
             'pg_success_url': 'https://class.unibilim.kg/success/',
             'pg_failure_url': 'https://class.unibilim.kg/error_payment/',
-            'pg_success_url_method': 'POST',
-            'pg_failure_url_method': 'POST',
+            'pg_success_url_method': 'GET',
+            'pg_failure_url_method': 'GET',
             'pg_currency': 'KGS',
             'pg_request_method': 'POST',            
             'pg_language': 'ru',
