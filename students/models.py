@@ -32,7 +32,7 @@ class Student(models.Model):
     telegram_username = models.CharField(max_length=255)
     telegram_id = models.CharField(max_length=255, blank=True, null=True)
     phone_numbers = models.CharField(max_length=20)
-    date_of_birth = models.DateField()
+    date_of_birth = models.DateField(blank=True,null=True)
     region = models.ForeignKey(Region, on_delete=models.SET_NULL, blank=True, null=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, blank=True, null=True)
     district_city = models.ForeignKey(District, on_delete=models.SET_NULL, blank=True, null=True)

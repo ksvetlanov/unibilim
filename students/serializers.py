@@ -41,7 +41,7 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
     phone_numbers = serializers.CharField(max_length=20)
     telegram_username = serializers.CharField()
-    date_of_birth = serializers.DateField(input_formats=['%d-%m-%Y'])
+    date_of_birth = serializers.DateField(input_formats=['%d-%m-%Y'],required=False, allow_null=True)
     region = serializers.PrimaryKeyRelatedField(queryset=Region.objects.all(), required=False, allow_null=True)
     district_city = serializers.PrimaryKeyRelatedField(queryset=District.objects.all(), required=False, allow_null=True)
     city = serializers.PrimaryKeyRelatedField(queryset=City.objects.all(), required=False, allow_null=True)
