@@ -29,7 +29,6 @@ class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     firstname = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
-    patronym = models.CharField(max_length=255, blank=True, null=True)
     telegram_username = models.CharField(max_length=255)
     telegram_id = models.CharField(max_length=255, blank=True, null=True)
     phone_numbers = models.CharField(max_length=20)

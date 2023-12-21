@@ -37,21 +37,20 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField()
     firstname = serializers.CharField()
     surname = serializers.CharField()
-    patronym = serializers.CharField(allow_blank=True, required=False)
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
     phone_numbers = serializers.CharField(max_length=20)
     telegram_username = serializers.CharField()
     date_of_birth = serializers.DateField(input_formats=['%d-%m-%Y'])
-    region = serializers.PrimaryKeyRelatedField(queryset=Region.objects.all())
-    district_city = serializers.PrimaryKeyRelatedField(queryset=District.objects.all())
-    city = serializers.PrimaryKeyRelatedField(queryset=City.objects.all())
+    region = serializers.PrimaryKeyRelatedField(queryset=Region.objects.all(), required=False, allow_null=True)
+    district_city = serializers.PrimaryKeyRelatedField(queryset=District.objects.all(), required=False, allow_null=True)
+    city = serializers.PrimaryKeyRelatedField(queryset=City.objects.all(), required=False, allow_null=True)
 
     # photo = serializers.ImageField()
 
     class Meta:
         model = Student
-        fields = ['username','firstname','surname','patronym', 'password', 'password2', 'phone_numbers', 'telegram_username', 'date_of_birth', 'region',
+        fields = ['username','firstname','surname', 'password', 'password2', 'phone_numbers', 'telegram_username', 'date_of_birth', 'region',
                   'district_city', 'city', 'photo']
 
     def validate(self, data):
