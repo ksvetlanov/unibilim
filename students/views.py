@@ -14,6 +14,13 @@ from meetings.models import Meetings
 from .serializers import MeetingsSerializerStudent
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from datetime import datetime
+
+def generate_transaction_id(username):
+    current_datetime = datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y%m%d%H%M")    
+
+    return f"{username}{formatted_datetime}"
 
 
 class ResendOTPView(APIView):
@@ -35,7 +42,7 @@ class ResendOTPView(APIView):
 
         phone = student.phone_numbers 
         try:
-            send_otp_code(username, phone)
+            send_otp_code(generate_transaction_id(username), phone)
         except Exception as e:
             return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -152,7 +159,7 @@ class StudentRegistrationAPIView(APIView):
             token = student.otp_token
             save_token_to_server(transaction_id, token)
             phone = serializer.validated_data['phone_numbers']
-            send_otp_code(transaction_id, phone)
+            send_otp_code(generate_transaction_id(transaction_id), phone)
             request.session['transaction_id'] = transaction_id
 
             student = Student.objects.get(user__username=transaction_id)
