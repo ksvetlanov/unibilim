@@ -11,6 +11,7 @@ urlpatterns = [
     # path('', include(router.urls)),
     path('register/student/', StudentRegistrationAPIView.as_view(), name='student_register'),
     path('verify/otp/', OTPVerificationView.as_view(), name='otp_verification'),
+    path('verify/', ResendOTPView.as_view(), name='verification'),
     path('regions/', RegionListView.as_view(), name='region-list'),
     path('regions/<int:region_id>/districts/', DistrictListView.as_view(), name='district-list'),
     path('districts/<int:district_id>/cities/', CityListView.as_view(), name='city-list'),
