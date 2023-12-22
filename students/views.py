@@ -82,7 +82,13 @@ def send_otp_code(transaction_id, phone):
         save_token_to_server(transaction_id, token)
         return token
     else:
-        raise Exception('Failed to send OTP')
+        error_message = f"Failed to send OTP. Response status code: {response.status_code}."
+        if response_data.get('status') is not None:
+            error_message += f" Server status: {response_data.get('status')}."
+        if response_data.get('error_message'):
+            error_message += f" Error details: {response_data.get('error_message')}."
+        raise Exception(error_message)
+
 
 
 def verify_otp_code(token, code):
