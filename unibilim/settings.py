@@ -183,3 +183,14 @@ MEDIA_URL = '/media/'  # URL для медиа-файлов
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Путь до папки с медиа-файлами
 
 
+import firebase_admin
+from firebase_admin import credentials
+
+# Укажите путь к вашему серверному ключу Firebase
+# Здесь мы используем относительный путь относительно settings.py
+cred = credentials.Certificate('./test-99fd8-firebase-adminsdk-wdrhp-c00f307dbc.json')
+
+# Инициализируйте Firebase с вашим серверным ключом
+firebase_admin.initialize_app(cred)
+
+

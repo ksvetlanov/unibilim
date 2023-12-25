@@ -85,3 +85,8 @@ class ProfessorsCabinetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Professors
         fields = '__all__'
+
+class DeviceTokenSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Professors
+         fields = ('device_token',)
