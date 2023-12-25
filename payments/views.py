@@ -176,7 +176,7 @@ class InitiatePaymentView(APIView):
         response = requests.post('https://api.freedompay.money/init_payment.php', data=request)
         xml_str = response.text    
         root = ET.fromstring(xml_str)
-        print(root)
+        print(root.find('pg_payment_id').text)
         pg_redirect_url = root.find('pg_redirect_url').text
         return pg_redirect_url
         #return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
