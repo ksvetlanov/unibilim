@@ -12,6 +12,7 @@ class Payments(models.Model):
     description = models.TextField()
     service = models.CharField(max_length=255)
     time_slots = models.JSONField(blank=True, null=True)
+    payment_id = models.CharField(max_length=255, null=True, blank=True)
     #student_request = models.ForeignKey(StudentRequest, on_delete=models.CASCADE, related_name="payments")
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
