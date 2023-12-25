@@ -48,7 +48,7 @@ class PaymentResultView(View):
             if status == 'success':
                 payment.status = 'COMPLETED'
                 for slot in payment.time_slots:
-                    meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%S")
+                    meeting_time = datetime.datetime.strptime(slot, "%Y-%m-%dT%H:%M:%SZ")
                     Meetings.objects.create(
                         subject=payment.service,
                         student=payment.student,
