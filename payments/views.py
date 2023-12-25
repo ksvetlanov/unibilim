@@ -221,7 +221,7 @@ def create_request(pg_payment_id):
     request['pg_sig'] = pg_sig  
     response = requests.post('https://api.freedompay.money/get_status3.php', data=request)  
     response_content = response.content
-
+    print(response_content)
     root = ET.fromstring(response_content)
 
     # Извлечение данных из XML
