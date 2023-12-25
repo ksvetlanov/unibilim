@@ -2,6 +2,7 @@ version: '3'
 services:
   db:
     image: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 290111208dj
@@ -17,3 +18,4 @@ services:
       - "8080:80"
     depends_on:
       - db
+    restart: unless-stopped
