@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
     def post(self, request, *args, **kwargs):
-        print(request.POST)  # Печатает все POST данные
-        print(request.body) 
         order_id = request.POST.get('pg_order_id')
         print("order_id", order_id)
         payment_id = request.POST.get('pg_payment_id')
@@ -120,7 +118,9 @@ class InitiatePaymentView(APIView):
             time_slots=time_slots,
         )
 
-        payment_data = self.initiate_payment(total_amount, description, student_id, payment.id)
+        payment_data, pg_payment_id = self.initiate_payment(total_amount, description, student_id, payment.id)
+        payment.payment_id = pg_payment_id
+        payment.save()
         # возвращаем ответ с информацией о платеже
         serializer = PaymentsSerializer(payment)
         
@@ -177,9 +177,9 @@ class InitiatePaymentView(APIView):
         response = requests.post('https://api.freedompay.money/init_payment.php', data=request)
         xml_str = response.text    
         root = ET.fromstring(xml_str)
-        print(root.find('pg_payment_id').text)
+        pg_payment_id = root.find('pg_payment_id').text
         pg_redirect_url = root.find('pg_redirect_url').text
-        return pg_redirect_url
+        return pg_redirect_url, pg_payment_id
         #return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
 
 
