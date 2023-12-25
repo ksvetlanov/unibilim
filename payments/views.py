@@ -59,13 +59,14 @@ class PaymentResultView(View):
                 payment.status = 'DECLINED'
 
             payment.save()
+            print('Payment status updated successfully')
             return JsonResponse({'status': 'success', 'message': 'Payment status updated successfully'})
 
         except Payments.DoesNotExist:
-            logger.error(f"Payment with order_id {order_id} does not exist.")
+            print(f"Payment with order_id {order_id} does not exist.")
             return JsonResponse({'status': 'error', 'message': 'Payment not found'}, status=404)
         except Exception as e:
-            logger.error(f"Error processing payment: {e}")
+            print(f"Error processing payment: {e}")
             return JsonResponse({'status': 'error', 'message': 'Error processing payment'}, status=500)
 
 
@@ -157,7 +158,7 @@ class InitiatePaymentView(APIView):
             'pg_currency': 'KGS',
             'pg_request_method': 'POST',            
             'pg_language': 'ru',
-            'pg_result_url': 'https://https://backend-prod.unibilim.kg/check_payment/',
+            'pg_result_url': 'https://backend-prod.unibilim.kg/check_payment/',
             'pg_testing_mode': '1',
             'pg_user_id': str(user_id),     
         }
@@ -173,6 +174,7 @@ class InitiatePaymentView(APIView):
         response = requests.post('https://api.freedompay.money/init_payment.php', data=request)
         xml_str = response.text    
         root = ET.fromstring(xml_str)
+        print(root)
         pg_redirect_url = root.find('pg_redirect_url').text
         return pg_redirect_url
         #return response  # Вы можете вернуть более полезные данные здесь, например response.json(), если это необходимо
@@ -220,8 +222,7 @@ def create_request(pg_payment_id):
     pg_sig = hashlib.md5(';'.join(x[1] for x in request_for_signature).encode()).hexdigest()   
     request['pg_sig'] = pg_sig  
     response = requests.post('https://api.freedompay.money/get_status3.php', data=request)  
-    response_content = response.content
-    print(response_content)
+    response_content = response.content    
     root = ET.fromstring(response_content)
 
     # Извлечение данных из XML
