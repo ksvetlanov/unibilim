@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .models import Payments
 from .serializers import PaymentsSerializer, InitiatePaymentSerializer, ResponseSerializer
 from django.shortcuts import get_object_or_404
-from django.http import Http404
+from django.http import Http404,  JsonResponse
 from random import shuffle
 import requests
 import hashlib
@@ -12,20 +12,22 @@ from drf_yasg.utils import swagger_auto_schema
 from students.models import Student
 from professors.models import Professors
 import json
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
 import logging
-from .models import Payments
 from meetings.models import Meetings
 import datetime
 import xml.etree.ElementTree as ET
+from dotenv import load_dotenv
 
 
-from django.http import JsonResponse
-import logging
-import datetime
+load_dotenv()
+
+pg_merchant_id = os.getenv('MERCHANT_ID')
+secret_key = os.getenv('SECRET_KEY')
+
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
@@ -139,8 +141,7 @@ class InitiatePaymentView(APIView):
         shuffle(pg_salt)
         pg_salt = ''.join(pg_salt)
 
-        pg_merchant_id =  
-        secret_key = '' 
+
 
         request = {
             'pg_order_id': str(payment_id),  # преобразовываем user_id в строку, так как все значения должны быть строками
@@ -199,9 +200,7 @@ def create_request(pg_payment_id):
     shuffle(pg_salt)
     pg_salt = ''.join(pg_salt)
    
-    
-    pg_merchant_id = 
-    secret_key = ''
+
   
 
     request = {       
