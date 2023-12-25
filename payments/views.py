@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
     def post(self, request, *args, **kwargs):
-        print("PaymentResultView запущен")
+        print(request.POST)  # Печатает все POST данные
+        print(request.body) 
         order_id = request.POST.get('pg_order_id')
         print("order_id", order_id)
         payment_id = request.POST.get('pg_payment_id')
