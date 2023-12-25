@@ -29,18 +29,20 @@ pg_merchant_id = os.getenv('MERCHANT_ID')
 secret_key = os.getenv('SECRET_KEY')
 
 
-
+logger = logging.getLogger(__name__)
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentResultView(View):
     def post(self, request, *args, **kwargs):
-        logger = logging.getLogger(__name__)
+        print("PaymentResultView запущен")
         order_id = request.POST.get('pg_order_id')
+        print("order_id", order_id)
         payment_id = request.POST.get('pg_payment_id')
+        print("payment_id", payment_id)
         status = create_request(payment_id)
         print(status)
         try:
             payment = Payments.objects.get(id=order_id)
-            logger.info(f"Current payment status: {payment.status}")
+            print(f"Current payment status: {payment.status}")
 
             if status == 'success':
                 payment.status = 'COMPLETED'
