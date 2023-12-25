@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import StudentRegistrationAPIView, OTPVerificationView, RegionListView, DistrictListView, CityListView,StudentMeetingsView
+from .views import StudentRegistrationAPIView, OTPVerificationView, RegionListView, DistrictListView, CityListView,StudentMeetingsView, ResendOTPView, monitor_meetings_view
 
 
 # router = DefaultRouter()
@@ -8,6 +8,7 @@ from .views import StudentRegistrationAPIView, OTPVerificationView, RegionListVi
 # router.register(r'professors', ProfessorViewSet)
 
 urlpatterns = [
+    path('monitor-meetings/', monitor_meetings_view, name='monitor_meetings'),
     # path('', include(router.urls)),
     path('register/student/', StudentRegistrationAPIView.as_view(), name='student_register'),
     path('verify/otp/', OTPVerificationView.as_view(), name='otp_verification'),

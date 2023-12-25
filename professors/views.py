@@ -76,3 +76,26 @@ class ProfessorsMyStudents(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Professors
+from .serializers import DeviceTokenSerializer
+
+class DeviceTokenView(generics.CreateAPIView):
+    serializer_class = DeviceTokenSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user  # Получаем текущего пользователя (преподавателя)
+        try:
+            professor = user.professors  # Получаем соответствующего преподавателя пользователя
+            serializer.validated_data['user'] = user  # Устанавливаем пользователя в поле 'user' модели
+            device_token = serializer.validated_data.get('device_token')
+            professor.device_token = device_token
+            professor.save()
+            return Response({'detail': 'Device Token успешно записан или перезаписан'}, status=status.HTTP_201_CREATED)
+        except Professors.DoesNotExist:
+            return Response({'error': 'Преподаватель не найден для текущего пользователя'}, status=status.HTTP_404_NOT_FOUND)
+

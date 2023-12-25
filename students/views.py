@@ -112,7 +112,7 @@ def send_otp_code(transaction_id, phone):
     if response.status_code == 200 and response_data.get('status') == 0:
         token = response_data.get('token')
         print(token)
-        save_token_to_server(transaction_id, token)
+        save_token_to_server(transaction_id[:-12], token)
         return token
     else:
         error_message = f"Failed to send OTP. Response status code: {response.status_code}."
@@ -225,3 +225,64 @@ class StudentMeetingsView(APIView):
 
         serializer = MeetingsSerializerStudent(meetings, many=True)
         return Response(serializer.data)
+
+
+from datetime import datetime
+from django.utils import timezone
+from firebase_admin import messaging
+from meetings.models import Meetings
+
+def send_today_meeting_notifications():
+        print("JR")
+        now = timezone.now()
+        today = now.date()  # Текущая дата
+    # Найдите все встречи, запланированные на сегодня
+        today_meetings = Meetings.objects.filter(datetime__date=today, status='PENDING')
+
+        for meeting in today_meetings:
+        # Отправьте уведомление на устройство профессора
+            message = messaging.Message(
+            notification=messaging.Notification(
+                title='Занятие сегодня',
+                body=f'У вас запланировано занятие на сегодня!'
+            ),
+            token=meeting.professor.user.professors.device_token,  # Поле с device_token профессора
+        )
+
+        try:
+            response = messaging.send(message)
+            # Уведомление успешно отправлено, можно обновить статус встречи
+            meeting.status = 'ACCEPTED'
+            meeting.save()
+        except Exception as e:
+            print(f"Ошибка при отправке уведомления: {e}")
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils import timezone
+from firebase_admin import messaging
+from meetings.models import Meetings
+
+# Создайте функцию, которая будет выполняться при добавлении новой записи (встречи) в базу данных
+@receiver(post_save, sender=Meetings)
+def send_notification_on_new_meeting(sender, instance, created, **kwargs):
+    if created:
+        # Если создана новая запись (встреча), отправьте уведомление преподавателю
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title='Новая встреча',
+                body=f'У вас новая встреча!'
+            ),
+            token=instance.professor.user.professors.device_token,  # Замените на поле с device_token профессора
+        )
+
+        try:
+            response = messaging.send(message)
+        except Exception as e:
+            # Обработка ошибки отправки уведомления
+            print(f"Ошибка при отправке уведомления: {e}")
+
+from django.http import HttpResponse
+def monitor_meetings_view(request):
+    send_today_meeting_notifications()
+    return HttpResponse("Скрипт успешно выполнен.")

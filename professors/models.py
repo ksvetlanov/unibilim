@@ -26,6 +26,7 @@ class Professors(models.Model):
     language = models.CharField(max_length=50)
     experience = models.CharField(max_length=5, choices=EXPERIENCE_CHOICES)
     classes = ArrayField(models.CharField(max_length=50), blank=True, default=list, null=True)
+    device_token = models.CharField(max_length=255,blank=True)
     
     def __str__(self):
         return f'{self.firstName} {self.surname} {self.pk}'
