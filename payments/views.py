@@ -19,6 +19,7 @@ import logging
 from meetings.models import Meetings
 import datetime
 import xml.etree.ElementTree as ET
+import os
 from dotenv import load_dotenv
 
 
