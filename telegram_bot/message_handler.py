@@ -88,10 +88,8 @@ class MessageHandler:
 
             if password == f'{DB_PASSWORD}':
 
-                docker_path = '/usr/bin/docker'
                 pg_dump_command = [
-                    docker_path, 'exec', '-i', 'unibilim_db_1',
-                    'pg_dump', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.sql'
+                    'pg_dump', '-h', 'unibilim_db_1', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.sql'
                 ]
                 process = subprocess.run(pg_dump_command, check=True)
 
