@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import shutil
 import subprocess
@@ -6,7 +7,6 @@ import requests
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import ReplyKeyboardRemove
-
 from .settings_bot import DB_PASSWORD, PASSWORD_COPY_FILE, PASSWORD_NAME_FILE_LIST, DB_USER, DB_NAME
 
 
@@ -16,14 +16,17 @@ class MessageServices:
         try:
             for root, dirs, files in os.walk(directory):
                 for file in files:
-                    file_list.append(os.path.join(root, file))
+                    file_path = os.path.join(root, file)
+                    normalized_path = os.path.normpath(file_path)
+                    file_list.append(normalized_path)
             return file_list
 
         except Exception as e:
-            print(f"Произошла ошибка list_files_in_directory: {e}")
+            logging.info(f"Произошла ошибка list_files_in_directory: {e}")
 
     async def is_git_file(self, file_path):
-        return file_path.startswith('.\\.git\\')
+        normalized_path = os.path.normpath(file_path)
+        return normalized_path.startswith('.git' + os.sep)
 
 
 class MessageHandler:
@@ -44,7 +47,6 @@ class MessageHandler:
 
     async def handle_confirmation_response(self, message: types.Message, user_data):
         try:
-
             chat_id = message.chat.id
             if str(chat_id) in self.confirmation:
                 response = message.text.lower()
@@ -55,7 +57,7 @@ class MessageHandler:
                     await self.meeting_db_manager.update_status(self.confirmation[str(chat_id)]['meeting_id'], meeting_status)
                     del self.meeting_data[self.confirmation[str(chat_id)]['username']]
                     del self.confirmation[str(chat_id)]
-                    print(f'Встреча успешно состоялась. статус: {meeting_status}')
+                    logging.info(f'Встреча успешно состоялась. статус: {meeting_status}')
                     user_data['current_state'] = 'idle'
 
                 elif response == 'нет':
@@ -64,69 +66,93 @@ class MessageHandler:
                     await self.meeting_db_manager.update_status(self.confirmation[str(chat_id)]['meeting_id'], meeting_status)
                     del self.meeting_data[self.confirmation[str(chat_id)]['username']]
                     del self.confirmation[str(chat_id)]
-                    print(f'Встреча не состоялась. статус: {meeting_status}')
+                    logging.info(f'Встреча не состоялась. статус: {meeting_status}')
                     user_data['current_state'] = 'idle'
 
                 else:
                     await message.reply("неизвестный ответ")
             else:
-                print('handle_confirmation_response: chat_id нет в confirmation')
+                logging.info('handle_confirmation_response: chat_id нет в confirmation')
 
         except Exception as e:
-            print(f"Произошла ошибка handle_confirmation_response: {e}")
+            logging.info(f"Произошла ошибка handle_confirmation_response: {e}")
 
     async def backup_password_message(self, message: types.Message, state: FSMContext):
-        current_state = await state.get_state()
-        print(f"Текущее состояние: {current_state}")
-        password = message.text
         try:
-            if password == f'{DB_PASSWORD}':
-                pg_dump_path = "\"C:\\Program Files\\PostgreSQL\\15\\bin\\pg_dump.exe\""
-                os.environ['PGPASSWORD'] = password
-                backup_commandd = "{} -U {} -d {} -f backup.sql".format(pg_dump_path, f'{DB_USER}', f'{DB_NAME}')
-                process = subprocess.Popen(backup_commandd, shell=True)
-                process.wait()
-                if process.returncode == 0:
+            password = message.text
 
-                    with open('backup.sql', 'rb') as backup_file:
-                        await message.reply_document(backup_file, caption="Бэкап успешно выполнен и файл отправлен.")
-                        os.remove('backup.sql')
-                        await state.finish()
-                else:
-                    await message.reply("Произошла ошибка при создании бэкапа. Пожалуйста, проверьте введенные данные и попробуйте еще раз.")
+            if password == '/cancel':
+                await state.finish()
+                await message.reply('Команда отменена.')
+                return
+
+            if password == f'{DB_PASSWORD}':
+                pg_dump_command = [
+                    'docker', 'exec', '-i', 'unibilim_db_1',
+                    'pg_dump', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.sql'
+                ]
+                process = subprocess.run(pg_dump_command, check=True)
+
+                with open('backup.sql', 'rb') as backup_file:
+                    await message.reply_document(backup_file, caption="Бэкап успешно выполнен и файл отправлен.")
+                    os.remove('backup.sql')
+                    await state.finish()
+
             else:
                 await message.reply("Неверный пароль. Попробуйте еще раз.")
 
-        except FileNotFoundError as e:
-            print(f"Произошла ошибка: {e}. Убедитесь, что у вас установлен PostgreSQL и правильно указан путь к утилите pg_dump.")
+        except subprocess.CalledProcessError as e:
+            logging.info(f"Произошла ошибка при создании бэкапа: {e}")
+            await message.reply(
+                "Произошла ошибка при создании бэкапа. Пожалуйста, проверьте введенные данные и попробуйте еще раз.")
+
         except Exception as e:
-            print(f"Произошла неизвестная ошибка: {e}")
+            logging.info(f"Произошла неизвестная ошибка: {e}")
 
     async def check_file_name_message(self, message: types.Message, state: FSMContext):
         try:
-            project_directory = '.'
+            if message.text == '/cancel':
+                await state.finish()
+                await message.reply('Команда отменена.')
+                return
+
             destination_directory = './telegram_bot/garbage'
+            if not os.path.exists(destination_directory):
+                os.makedirs(destination_directory)
+
+            project_directory = '.'
             files_in_project = await self.message_services.list_files_in_directory(project_directory)
-            filtered_file_list = [file for file in files_in_project if not await self.message_services.is_git_file(file)]
+            filtered_file_list = [file for file in files_in_project if
+                                  not await self.message_services.is_git_file(file)]
             file_name = message.text
+
             if file_name in filtered_file_list:
-                shutil.copy(file_name, destination_directory)
-                file_name = os.path.basename(file_name)
-                copied_file_path = os.path.join(destination_directory, file_name)
+                source_path = os.path.join(project_directory, file_name)
+                copied_file_path = os.path.join(destination_directory, os.path.basename(file_name))
+                shutil.copy(source_path, copied_file_path)
+
                 with open(copied_file_path, 'rb') as file:
                     await message.reply_document(file, caption="Файл скопирован и отправлен.")
-                    os.remove(copied_file_path)
+
+                shutil.rmtree(destination_directory, ignore_errors=True)
+
                 await state.finish()
 
             else:
                 await message.reply(f"Такого файла нет на сервере!")
 
         except Exception as e:
-            print(f"Произошла ошибка check_file_name_message: {e}")
+            logging.info(f"Произошла ошибка check_file_name_message: {e}")
 
     async def copy_file_password_message(self, message: types.Message, state: FSMContext):
         try:
             password = message.text
+
+            if password == '/cancel':
+                await state.finish()
+                await message.reply('Команда отменена.')
+                return
+
             if password == PASSWORD_COPY_FILE:
                 await message.answer("Пароль верен. Теперь введите название файла:")
                 await state.finish()
@@ -136,11 +162,18 @@ class MessageHandler:
                 await message.answer(f"Неверный пароль. Попробуйте снова.")
 
         except Exception as e:
-            print(f"Произошла ошибка copy_file_password_message: {e}")
+            logging.info(f"Произошла ошибка copy_file_password_message: {e}")
 
     async def file_name_list_message(self, message: types.Message, state: FSMContext):
         try:
+
+            if message.text == '/cancel':
+                await state.finish()
+                await message.reply('Команда отменена.')
+                return
+
             if message.text == PASSWORD_NAME_FILE_LIST:
+                await message.reply('Команда /cancel может не сработать сразу при /get_file_name. Дождитесь завершения операции для полной отмены.')
                 project_directory = '.'
                 files_in_project = await self.message_services.list_files_in_directory(project_directory)
                 filtered_file_list = [file for file in files_in_project if not await self.message_services.is_git_file(file)]
@@ -156,12 +189,17 @@ class MessageHandler:
                 await message.answer(f"Неверный пароль. Попробуйте снова.")
 
         except Exception as e:
-            print(f"Произошла ошибка file_name_list_message: {e}")
+            logging.info(f"Произошла ошибка file_name_list_message: {e}")
 
     async def password_reset(self, message: types.Message, state: FSMContext):
         try:
+            if message.text == '/cancel':
+                await state.finish()
+                await message.reply('Команда отменена.')
+                return
+
             await self.db.create_pool()
-            url = 'http://127.0.0.1:8000/accounts/password-reset/'
+            url = 'https://backend-prod.unibilim.kg/accounts/password-reset/'
 
             username = message.chat.username
             new_password = message.text
@@ -192,11 +230,20 @@ class MessageHandler:
                     new_password_errors) if new_password_errors else "Нет подробной информации об ошибке."
                 await message.reply(f"{error_messages}")
 
+        except requests.exceptions.RequestException as req_ex:
+            await message.reply("Не удалось отправить запрос на сервер. Пожалуйста, попробуйте позже.")
+            await state.finish()
+
         except Exception as e:
-            print(f"Произошла ошибка password_reset: {e}")
+            logging.info(f"Произошла ошибка password_reset: {e}")
 
     async def password_reset_code(self, message: types.Message, state: FSMContext):
         try:
+            if message.text == '/cancel':
+                await state.finish()
+                await message.reply('Команда отменена.')
+                return
+
             await self.db.create_pool()
             username = message.chat.username
             user_code = message.text
@@ -215,7 +262,7 @@ class MessageHandler:
                     await message.answer("Неверный код. Попробуйте еще раз.")
 
         except Exception as e:
-            print(f"Произошла ошибка password_reset_code: {e}")
+            logging.info(f"Произошла ошибка password_reset_code: {e}")
 
     async def register_commands(self):
         self.dp.register_message_handler(

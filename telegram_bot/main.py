@@ -79,7 +79,7 @@ class MainBot:
             meeting_end_time = meeting_time_kyrgyzstan + meeting_duration
             log_meeting_time = meeting_end_time + datetime.timedelta(hours=6)
             time_difference = meeting_end_time - current_time_kyrgyzstan
-            print(f'Встреча закончится в : {log_meeting_time}\nОпрос придет пользователю {username} через : {time_difference}')
+            logging.info(f'Встреча закончится в : {log_meeting_time}\nОпрос придет пользователю {username} через : {time_difference}')
             time_difference_minutes = (meeting_end_time - current_time_kyrgyzstan).total_seconds() / 60
 
             if 0 < time_difference_minutes <= 1:
@@ -87,7 +87,7 @@ class MainBot:
                 markup.add(types.KeyboardButton("Да"), types.KeyboardButton("Нет"))
 
                 await self.bot.send_message(chat_id, "Прошла ли встреча?", reply_markup=markup)
-                print(f"Опрос отправлен пользователю {username}")
+                logging.info(f"Опрос отправлен пользователю {username}")
 
                 self.message_handler.user_data['current_state'] = 'waiting_confirmation'
 
@@ -97,10 +97,10 @@ class MainBot:
                     'chat_id': chat_id,
                     'meeting_id': meeting_id
                 }
-                print(f'Пользователь {username} не подтвердил встречу')
+                logging.info(f'Пользователь {username} не подтвердил встречу')
 
         except Exception as e:
-            print(f"Произошла ошибка sending_confirmation_message: {e}")
+            logging.info(f"Произошла ошибка sending_confirmation_message: {e}")
 
     async def sending_link_message(self, chat_id, username, meeting_appointed_time, meeting_link, meeting_duration, meeting_id):
         try:
@@ -108,11 +108,11 @@ class MainBot:
             current_time_kyrgyzstan = datetime.datetime.now(kyrgyzstan_timezone)
             meeting_time_kyrgyzstan = meeting_appointed_time - datetime.timedelta(hours=6)
             time_difference = meeting_time_kyrgyzstan - current_time_kyrgyzstan
-            print(f'Назначенное время встречи : {meeting_appointed_time}\nВстреча начнется через : {time_difference}')
+            logging.info(f'Назначенное время встречи : {meeting_appointed_time}\nВстреча начнется через : {time_difference}')
             time_difference_minutes = (meeting_time_kyrgyzstan - current_time_kyrgyzstan).total_seconds() / 60
 
             if time_difference_minutes <= 1:
-                print(f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
+                logging.info(f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
                 await self.bot.send_message(chat_id=chat_id, text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
                 await self.db.create_pool()
                 user_data = await self.user_db_manager.get_user(username)
@@ -126,21 +126,21 @@ class MainBot:
                     }
                 elif user_data['user_type'] == 'student':
                     await self.stop_user_task(username)
-                    print(f'Задача для студента {username} остановлена.')
+                    logging.info(f'Задача для студента {username} остановлена.')
 
             elif 29 * 60 <= time_difference.total_seconds() <= 30 * 60:
-                print(f"Отправка напоминания на 30 минут... пользователю : {username}")
+                logging.info(f"Отправка напоминания на 30 минут... пользователю : {username}")
                 await self.bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
-                print("Дождаться времени встречи...")
+                logging.info("Дождаться времени встречи...")
 
         except Exception as e:
-            print(f"Произошла ошибка sending_message: {e}")
+            logging.info(f"Произошла ошибка sending_message: {e}")
 
     async def main(self):
         try:
             await self.db.create_pool()
             if self.command_handler.active_users:
-                print(f'Активные пользователи main : {len(self.command_handler.active_users)}')
+                logging.info(f'Активные пользователи main : {len(self.command_handler.active_users)}')
                 for username in self.command_handler.active_users:
                     data = await self.user_db_manager.get_user(username)
 
@@ -160,7 +160,7 @@ class MainBot:
                             self.user_tasks[username] = task
 
                         else:
-                            print(f"У пользователя {data['username']} нет встреч")
+                            logging.info(f"У пользователя {data['username']} нет встреч")
 
                     elif data['user_type'] == 'student':
                         meetings = await self.student_db_manager.get_meetings(data['id'])
@@ -177,7 +177,7 @@ class MainBot:
                             self.user_tasks[username] = task
 
                         else:
-                            print(f"У пользователя {data['username']} нет встреч")
+                            logging.info(f"У пользователя {data['username']} нет встреч")
 
                     if self.message_handler.meeting_data:
                         for username in self.message_handler.meeting_data:
@@ -200,7 +200,7 @@ class MainBot:
                                 )
 
                             else:
-                                print(f'Пользователь {username} не является учителем, задача остановлена')
+                                logging.info(f'Пользователь {username} не является учителем, задача остановлена')
 
                     if self.meeting_not_marked:
                         for username, data in self.meeting_not_marked.items():
@@ -210,7 +210,7 @@ class MainBot:
                             await self.meeting_db_manager.update_status(meeting_id, meeting_status)
                             del self.message_handler.meeting_data[self.message_handler.confirmation[str(chat_id)]['username']]
                             del self.message_handler.confirmation[str(chat_id)]
-                            print(f'Время истекло. Встреча отмечена как NOT MARKED. статус: {meeting_status}')
+                            logging.info(f'Время истекло. Встреча отмечена как NOT MARKED. статус: {meeting_status}')
                             await self.bot.send_message(chat_id, 'Вы не подтвердили встречу!\nвстреча останется не отмечанной', reply_markup=ReplyKeyboardRemove())
                             self.message_handler.user_data['current_state'] = 'idle'
 
@@ -219,10 +219,10 @@ class MainBot:
                 await asyncio.gather(*self.user_tasks.values())
 
             else:
-                print('Нет активных пользователей')
+                logging.info('Нет активных пользователей')
 
         except Exception as e:
-            print(f"Произошла ошибка main: {e}")
+            logging.info(f"Произошла ошибка main: {e}")
 
     async def register_commands(self):
         await self.command_handler.register_commands()
@@ -237,7 +237,8 @@ async def run():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(filename='bot_logs.log', level=logging.INFO, encoding='utf-8',
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     loop = asyncio.get_event_loop()
     loop.create_task(main_bot.register_commands())
     aiocron.crontab('*/1 * * * *', func=lambda: asyncio.ensure_future(run()))
