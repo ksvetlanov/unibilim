@@ -87,8 +87,10 @@ class MessageHandler:
                 return
 
             if password == f'{DB_PASSWORD}':
+
+                docker_path = '/usr/bin/docker'
                 pg_dump_command = [
-                    'docker', 'exec', '-i', 'unibilim_db_1',
+                    docker_path, 'exec', '-i', 'unibilim_db_1',
                     'pg_dump', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.sql'
                 ]
                 process = subprocess.run(pg_dump_command, check=True)
@@ -104,10 +106,13 @@ class MessageHandler:
         except subprocess.CalledProcessError as e:
             logging.info(f"Произошла ошибка при создании бэкапа: {e}")
             await message.reply(
-                "Произошла ошибка при создании бэкапа. Пожалуйста, проверьте введенные данные и попробуйте еще раз.")
+                "Произошла ошибка при создании бэкапа. Пожалуйста, попробуйте позже")
 
         except Exception as e:
             logging.info(f"Произошла неизвестная ошибка: {e}")
+            await message.reply(
+                "Произошла ошибка при создании бэкапа. Пожалуйста, попробуйте позже")
+
 
     async def check_file_name_message(self, message: types.Message, state: FSMContext):
         try:
