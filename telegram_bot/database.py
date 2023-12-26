@@ -1,3 +1,5 @@
+import logging
+
 import asyncpg
 from .settings_bot import DB_HOST, DB_USER, DB_NAME
 import datetime
@@ -27,7 +29,7 @@ class DataBase:
                 result = await connection.fetch(query, *args)
                 return result
         except Exception as e:
-            print(f"Database Error: {e}")
+            logging.info(f"Database Error: {e}")
             return None
 
     async def backup_db(self):
@@ -46,7 +48,7 @@ class DataBase:
             ])
             return backup_file
         except Exception as e:
-            print(f"Произошла ошибка при создании резервной копии: {e}")
+            logging.info(f"Произошла ошибка при создании резервной копии: {e}")
             return None
 
 
@@ -83,7 +85,7 @@ class UserManager:
                 return None
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def get_token(self, user__id):
         try:
@@ -101,7 +103,7 @@ class UserManager:
                 return None
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def get_chat_id(self, telegram_username):
         try:
@@ -124,7 +126,7 @@ class UserManager:
                 return None
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def create_reset_password_code(self, user__id, code):
         try:
@@ -133,10 +135,10 @@ class UserManager:
             """
 
             await self.db_manager.execute_query(query, user__id, code)
-            print('Create password reset code successful')
+            logging.info('Create password reset code successful')
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def get_reset_password_code(self, user_id):
         try:
@@ -152,7 +154,7 @@ class UserManager:
             else:
                 return None
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
 
 class ProfessorManager(UserManager):
@@ -177,7 +179,7 @@ class ProfessorManager(UserManager):
                 return None
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def get_meetings(self, professor_id):
         try:
@@ -192,7 +194,7 @@ class ProfessorManager(UserManager):
             return data
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def update_chat_id(self, telegram_username, chat_id):
         try:
@@ -203,10 +205,10 @@ class ProfessorManager(UserManager):
             """
 
             await self.db_manager.execute_query(query, telegram_username, str(chat_id))
-            print("Update chat_id successful")
+            logging.info("Update chat_id successful")
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
 
 class StudentManager(UserManager):
@@ -226,7 +228,7 @@ class StudentManager(UserManager):
             return data
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def update_chat_id(self, telegram_username, chat_id):
         try:
@@ -237,10 +239,10 @@ class StudentManager(UserManager):
             """
 
             await self.db_manager.execute_query(query, telegram_username, str(chat_id))
-            print("Update chat_id successful")
+            logging.info("Update chat_id successful")
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
 
 class MeetingManager:
@@ -256,10 +258,10 @@ class MeetingManager:
             """
 
             await self.db_manager.execute_query(query, new_status, meeting_id)
-            print("Update status successful")
+            logging.info("Update status successful")
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
 
     async def sorting(self, meetings):
         try:
@@ -284,4 +286,4 @@ class MeetingManager:
                 return None
 
         except Exception as e:
-            print("Database Error:", e)
+            logging.info("Database Error:", e)
