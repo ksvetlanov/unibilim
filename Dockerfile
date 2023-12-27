@@ -2,6 +2,8 @@ FROM python:3.9
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev musl-dev
+RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev musl-dev postgresql-client
+
 
 COPY  . .
 

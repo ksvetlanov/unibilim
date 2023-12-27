@@ -103,6 +103,7 @@ class MessageHandler:
 
         except subprocess.CalledProcessError as e:
             logging.info(f"Произошла ошибка при создании бэкапа: {e}")
+            print(f"Вывод команды: {e.output}")
             await message.reply(
                 "Произошла ошибка при создании бэкапа. Пожалуйста, попробуйте позже")
 
