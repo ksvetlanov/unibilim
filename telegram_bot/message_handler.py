@@ -88,6 +88,8 @@ class MessageHandler:
 
             if password == f'{DB_PASSWORD}':
 
+                os.environ['PGPASSWORD'] = password
+
                 pg_dump_command = [
                     'pg_dump', '-h', 'unibilim_db_1', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.sql'
                 ]
@@ -111,6 +113,9 @@ class MessageHandler:
             logging.info(f"Произошла неизвестная ошибка: {e}")
             await message.reply(
                 "Произошла ошибка при создании бэкапа. Пожалуйста, попробуйте позже")
+
+        finally:
+            os.environ.pop('PGPASSWORD', None)
 
 
     async def check_file_name_message(self, message: types.Message, state: FSMContext):
