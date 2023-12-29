@@ -91,13 +91,13 @@ class MessageHandler:
                 os.environ['PGPASSWORD'] = password
 
                 pg_dump_command = [
-                    'pg_dump', '-h', 'unibilim_db_1', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.sql'
+                    'pg_dump', '-h', 'unibilim_db_1', '-U', f'{DB_USER}', '-d', f'{DB_NAME}', '-f', 'backup.dump'
                 ]
                 process = subprocess.run(pg_dump_command, check=True)
 
-                with open('backup.sql', 'rb') as backup_file:
+                with open('backup.dump', 'rb') as backup_file:
                     await message.reply_document(backup_file, caption="Бэкап успешно выполнен и файл отправлен.")
-                    os.remove('backup.sql')
+                    os.remove('backup.dump')
                     await state.finish()
 
             else:
