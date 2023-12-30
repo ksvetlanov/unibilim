@@ -65,6 +65,7 @@ class MainBot:
                 self.command_handler,
                 self.my_state
             )
+        self.confirmation_lock = asyncio.Lock()
 
     async def stop_user_task(self, username):
         if username in self.user_tasks:
@@ -83,13 +84,14 @@ class MainBot:
             time_difference_minutes = (meeting_end_time - current_time_kyrgyzstan).total_seconds() / 60
 
             if 0 < time_difference_minutes <= 1:
-                markup = types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True, one_time_keyboard=True)
-                markup.add(types.KeyboardButton("Да"), types.KeyboardButton("Нет"))
+                async with self.confirmation_lock:
+                    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True, one_time_keyboard=True)
+                    markup.add(types.KeyboardButton("Да"), types.KeyboardButton("Нет"))
 
-                await self.bot.send_message(chat_id, "Прошла ли встреча?", reply_markup=markup)
-                logging.info(f"Опрос отправлен пользователю {username}")
+                    await self.bot.send_message(chat_id, "Прошла ли встреча?", reply_markup=markup)
+                    logging.info(f"Опрос отправлен пользователю {username}")
 
-                self.message_handler.user_data['current_state'] = 'waiting_confirmation'
+                    self.message_handler.user_data['current_state'] = 'waiting_confirmation'
 
             elif time_difference_minutes < 0:
                 self.meeting_not_marked[username] = {

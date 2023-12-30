@@ -97,7 +97,6 @@ class MessageHandler:
 
                 with open('backup.dump', 'rb') as backup_file:
                     await message.reply_document(backup_file, caption="Бэкап успешно выполнен и файл отправлен.")
-                    os.remove('backup.dump')
                     await state.finish()
 
             else:
