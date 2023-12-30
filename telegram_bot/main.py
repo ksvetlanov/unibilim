@@ -94,12 +94,13 @@ class MainBot:
                     self.message_handler.user_data['current_state'] = 'waiting_confirmation'
 
             elif time_difference_minutes < 0:
-                self.meeting_not_marked[username] = {
-                    'username': username,
-                    'chat_id': chat_id,
-                    'meeting_id': meeting_id
-                }
-                logging.info(f'Пользователь {username} не подтвердил встречу')
+                async with self.confirmation_lock:
+                    self.meeting_not_marked[username] = {
+                        'username': username,
+                        'chat_id': chat_id,
+                        'meeting_id': meeting_id
+                    }
+                    logging.info(f'Пользователь {username} не подтвердил встречу')
 
         except Exception as e:
             logging.info(f"Произошла ошибка sending_confirmation_message: {e}")
@@ -182,41 +183,43 @@ class MainBot:
                             logging.info(f"У пользователя {data['username']} нет встреч")
 
                     if self.message_handler.meeting_data:
-                        for username in self.message_handler.meeting_data:
-                            professor_data = await self.professor_db_manager.get_data(username)
-                            if professor_data:
-                                meeting = self.message_handler.meeting_data[username]
-                                self.message_handler.confirmation[meeting['chat_id']] = {
-                                    'chat_id': meeting['chat_id'],
-                                    'username': meeting['username'],
-                                    'meeting_id': meeting['meeting_id'],
+                        async with self.confirmation_lock:
+                            for username in self.message_handler.meeting_data:
+                                professor_data = await self.professor_db_manager.get_data(username)
+                                if professor_data:
+                                    meeting = self.message_handler.meeting_data[username]
+                                    self.message_handler.confirmation[meeting['chat_id']] = {
+                                        'chat_id': meeting['chat_id'],
+                                        'username': meeting['username'],
+                                        'meeting_id': meeting['meeting_id'],
 
-                                }
+                                    }
 
-                                await self.sending_confirmation_message(
-                                    professor_data['chat_id'],
-                                    professor_data['username'],
-                                    meeting['meeting_appointed_time'],
-                                    meeting['meeting_duration'],
-                                    meeting['meeting_id']
-                                )
+                                    await self.sending_confirmation_message(
+                                        professor_data['chat_id'],
+                                        professor_data['username'],
+                                        meeting['meeting_appointed_time'],
+                                        meeting['meeting_duration'],
+                                        meeting['meeting_id']
+                                    )
 
                             else:
                                 logging.info(f'Пользователь {username} не является учителем, задача остановлена')
 
                     if self.meeting_not_marked:
-                        for username, data in self.meeting_not_marked.items():
-                            chat_id = data['chat_id']
-                            meeting_id = data['meeting_id']
-                            meeting_status = 'NOT MARKED'
-                            await self.meeting_db_manager.update_status(meeting_id, meeting_status)
-                            del self.message_handler.meeting_data[self.message_handler.confirmation[str(chat_id)]['username']]
-                            del self.message_handler.confirmation[str(chat_id)]
-                            logging.info(f'Время истекло. Встреча отмечена как NOT MARKED. статус: {meeting_status}')
-                            await self.bot.send_message(chat_id, 'Вы не подтвердили встречу!\nвстреча останется не отмечанной', reply_markup=ReplyKeyboardRemove())
-                            self.message_handler.user_data['current_state'] = 'idle'
+                        async with self.confirmation_lock:
+                            for username, data in self.meeting_not_marked.items():
+                                chat_id = data['chat_id']
+                                meeting_id = data['meeting_id']
+                                meeting_status = 'NOT MARKED'
+                                await self.meeting_db_manager.update_status(meeting_id, meeting_status)
+                                del self.message_handler.meeting_data[self.message_handler.confirmation[str(chat_id)]['username']]
+                                del self.message_handler.confirmation[str(chat_id)]
+                                logging.info(f'Время истекло. Встреча отмечена как NOT MARKED. статус: {meeting_status}')
+                                await self.bot.send_message(chat_id, 'Вы не подтвердили встречу!\nвстреча останется не отмечанной', reply_markup=ReplyKeyboardRemove())
+                                self.message_handler.user_data['current_state'] = 'idle'
 
-                        self.meeting_not_marked.clear()
+                            self.meeting_not_marked.clear()
 
                 await asyncio.gather(*self.user_tasks.values())
 
