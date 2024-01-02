@@ -11,12 +11,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: bash -c "python manage.py runserver 0.0.0.0:80 & python -m telegram_bot.main --port 8000"
+    command: python manage.py runserver 0.0.0.0:80
     volumes:
       - .:/app
     ports:
       - "8080:80"
-      - "8000:8000"
     depends_on:
       - db
     restart: unless-stopped

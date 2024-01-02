@@ -18,4 +18,4 @@ RUN pip install -r requirements.txt
 
 ENV DJANGO_SETTINGS_MODULE=unibilim.settings
 
-CMD ["bash", "-c", "python manage.py runserver 0.0.0.0:80 & python -m telegram_bot.main --port 8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]
