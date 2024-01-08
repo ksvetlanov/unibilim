@@ -91,16 +91,19 @@ class CommandHandler:
         data = await self.user_db_manager.get_user(username)
         if data:
             if data['user_type'] == 'professor':
+
                 current_date = datetime.date.today()
-                today_meetings = await self.professor_db_manager.get_today_meetings(data['id'], current_date)
+                next_date = current_date + datetime.timedelta(days=1)
+
+                today_meetings = await self.professor_db_manager.get_today_meetings(data['id'], current_date, next_date)
 
                 if today_meetings:
                     formatted_schedule = []
 
                     for record in today_meetings:
-                        student_username = await self.student_db_manager.get_username(record['student_id'])
+                        student_data = await self.student_db_manager.get_info(record['student_id'])
                         formatted_schedule.append(
-                            f"{student_username} - {record['datetime'].strftime('%H:%M')}")
+                            f"{student_data['full_name']} - {record['datetime'].strftime('%H:%M')}")
 
                     response_message = "\n".join(formatted_schedule)
                     await message.reply(f'Ваши встречи сегодня:\n{response_message}')

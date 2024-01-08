@@ -199,15 +199,15 @@ class ProfessorManager(UserManager):
         except Exception as e:
             logging.info("Database Error:", e)
 
-    async def get_today_meetings(self, professor_id, target_date):
+    async def get_today_meetings(self, professor_id, start_date, end_date):
         try:
             query = """
                 SELECT datetime, student_id
                 FROM meetings_meetings
-                WHERE professor_id = $1 AND DATE(datetime) = $2;
+                WHERE professor_id = $1 AND DATE(datetime) BETWEEN $2 AND $3;
             """
 
-            data = await self.db_manager.execute_query(query, professor_id, target_date)
+            data = await self.db_manager.execute_query(query, professor_id, start_date, end_date)
             if data:
                 return data
             else:
@@ -305,6 +305,25 @@ class StudentManager(UserManager):
 
             if data:
                 return data[0][0]
+            else:
+                return None
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+
+    async def get_info(self, student_id):
+        try:
+            query = """
+                SELECT firstname, surname
+                FROM students_student
+                WHERE id = $1;
+            """
+
+            data = await self.db_manager.execute_query(query, student_id)
+
+            if data:
+                student_info = {'full_name': f"{data[0][0]} {data[0][1]}"}
+                return student_info
             else:
                 return None
 
