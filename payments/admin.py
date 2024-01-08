@@ -11,7 +11,10 @@ class PaymentsAdmin(admin.ModelAdmin):
         'professor',
         'description',
         'service',
-        'time_slots',)
+        'time_slots',
+        'status_new_meeting',
+
+    )
     # например, list_filter, search_fields и т.д.
 
 # Зарегистрируйте модель с использованием определенного администратора

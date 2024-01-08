@@ -1,6 +1,7 @@
 import logging
 from aiogram import types
 import random
+import datetime
 from .settings_bot import LINK_TO_WEBSITE
 
 
@@ -33,17 +34,20 @@ class CommandHandler:
 
             if data:
                 if data['user_type'] == 'professor':
-                    await self.professor_db_manager.update_chat_id(data['username'], user.id)
-                    await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
-                    self.active_users.add(username)
-                    logging.info(f'Активные пользователи : {len(self.active_users)}')
+                    update_chat_id = await self.professor_db_manager.update_chat_id(data['username'], user.id)
+                    if update_chat_id:
+                        await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
+                        self.active_users.add(username)
+                    else:
+                        logging.info(f'the chat_id of the {data["username"]} user has not been updated')
 
                 elif data['user_type'] == 'student':
-                    await self.student_db_manager.update_chat_id(data['username'], user.id)
-                    await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
-                    self.active_users.add(username)
-                    logging.info(f'активные пользователи : {len(self.active_users)}')
-
+                    update_chat_id = await self.student_db_manager.update_chat_id(data['username'], user.id)
+                    if update_chat_id:
+                        await message.reply(f"Привет {data['username']} Я буду напоминать вам о предстоящих встречах и присылать ссылки в назначенное время, где будут проводиться занятия.")
+                        self.active_users.add(username)
+                    else:
+                        logging.info(f'the chat_id of the {data["username"]} user has not been updated')
             else:
                 await message.answer(f"Пользователь не найден в базе данных. Посетите этот сайт: {LINK_TO_WEBSITE}")
 
@@ -81,12 +85,37 @@ class CommandHandler:
         except Exception as e:
             logging.info(f"Произошла ошибка password_reset_command: {e}")
 
+    async def schedule_command(self, message: types.Message):
+        await self.db.create_pool()
+        username = message.chat.username
+        data = await self.user_db_manager.get_user(username)
+        if data:
+            if data['user_type'] == 'professor':
+                current_date = datetime.date.today()
+                today_meetings = await self.professor_db_manager.get_today_meetings(data['id'], current_date)
+
+                if today_meetings:
+                    formatted_schedule = []
+
+                    for record in today_meetings:
+                        student_username = await self.student_db_manager.get_username(record['student_id'])
+                        formatted_schedule.append(
+                            f"{student_username} - {record['datetime'].strftime('%H:%M')}")
+
+                    response_message = "\n".join(formatted_schedule)
+                    await message.reply(f'Ваши встречи сегодня:\n{response_message}')
+                else:
+                    await message.reply('На сегодня у вас нет встреч.')
+            else:
+                await message.reply('Данная команда не доступно вам :)')
+
     async def register_commands(self):
         self.dp.register_message_handler(self.start_command, commands=['start'])
         self.dp.register_message_handler(self.backup_command, commands=['backup'])
         self.dp.register_message_handler(self.copy_file_command, commands=['get_file'])
         self.dp.register_message_handler(self.file_name_command, commands=['get_file_name'])
         self.dp.register_message_handler(self.password_reset_command, commands=['password_reset'])
+        self.dp.register_message_handler(self.schedule_command, commands=['schedule'])
 
 
 

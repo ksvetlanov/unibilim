@@ -43,7 +43,6 @@ class HolidaysViewSet(viewsets.ModelViewSet):
 class CabinetView(generics.RetrieveAPIView):
     queryset = Professors.objects.all()
     serializer_class = ProfessorsSerializer
-    
 
     def get_object(self):
         user = self.request.user
@@ -54,6 +53,7 @@ class CabinetView(generics.RetrieveAPIView):
             raise PermissionDenied("Professors matching query does not exist")
 
         return professor
+
 
 class ProfessorsMyStudents(generics.ListAPIView):
     serializer_class = ProfessorsMyStudentsSerializer
@@ -76,6 +76,7 @@ class ProfessorsMyStudents(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
 
 from rest_framework import generics, status
 from rest_framework.response import Response

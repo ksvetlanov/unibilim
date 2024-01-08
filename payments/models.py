@@ -24,5 +24,16 @@ class Payments(models.Model):
         choices=STATUS_CHOICES,
         default='PENDING',
     )
+
+    STATUS_CHOICES_MEETING = [
+        ('SENT', 'Sent'),
+        ('DID NOT SENT', 'Did not send'),
+    ]
+    status_new_meeting = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES_MEETING,
+        default='DID NOT SENT'
+    )
+
     def __str__(self):
         return f'{self.service} {self.student.surname} {self.amount}'

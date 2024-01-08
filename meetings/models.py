@@ -43,3 +43,26 @@ class Meetings(models.Model):
         self.jitsiLink = "https://meet.jit.si/" + str(Meetings.generate_hash(self.professor.surname, self.student.surname, str(self.datetime)))
         super(Meetings, self).save(*args, **kwargs)
 
+
+class MeetingsConfirmation(models.Model):
+    professor = models.ForeignKey(Professors, on_delete=models.CASCADE, related_name="professor_confirmation_meetings")
+    chat_id = models.CharField(max_length=20, blank=False)
+    username = models.CharField(max_length=255, blank=False)
+    meeting = models.ForeignKey(Meetings, on_delete=models.CASCADE)
+    appointed_time = models.DateTimeField()
+    duration = models.DurationField()
+    confirmation_attempts = models.PositiveIntegerField(default=0)
+
+    STATUS_CHOICES = [
+        ('SENT', 'Sent'),
+        ('DID NOT SENT', 'Did not send'),
+    ]
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='DID NOT SENT',)
+
+    def __str__(self):
+        return f'Профессор({self.professor.firstName} {self.professor.surname})'
+

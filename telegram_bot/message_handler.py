@@ -41,38 +41,67 @@ class MessageHandler:
         self.message_services = MessageServices()
         self.command_handler = command_handler
         self.my_state = my_state
-        self.confirmation = {}
-        self.meeting_data = {}
+        self.confirmation_tasks = {}
         self.user_data = {}
+
+    async def stop_user_task(self, data):
+        if data in self.confirmation_tasks:
+            task = self.confirmation_tasks.pop(data)
+            task.cancel()
 
     async def handle_confirmation_response(self, message: types.Message, user_data):
         try:
-            chat_id = message.chat.id
-            if str(chat_id) in self.confirmation:
-                response = message.text.lower()
+            response = message.text.lower()
 
-                if response == 'да':
-                    await message.reply("Встреча прошла успешно!", reply_markup=ReplyKeyboardRemove())
-                    meeting_status = 'ACCEPTED'
-                    await self.meeting_db_manager.update_status(self.confirmation[str(chat_id)]['meeting_id'], meeting_status)
-                    del self.meeting_data[self.confirmation[str(chat_id)]['username']]
-                    del self.confirmation[str(chat_id)]
+            if response == 'да':
+                await message.reply("Встреча прошла успешно!", reply_markup=ReplyKeyboardRemove())
+                meeting_status = 'ACCEPTED'
+                update_status = await self.meeting_db_manager.update_status(user_data['meeting_id'], meeting_status)
+                if update_status:
                     logging.info(f'Встреча успешно состоялась. статус: {meeting_status}')
-                    user_data['current_state'] = 'idle'
+                    confirmation_status = 'SENT'
+                    confirmation_id = await self.meeting_db_manager.get_meeting_confirmation_id(user_data['meeting_id'])
+                    if confirmation_id:
+                        update_status_confirmation = await self.meeting_db_manager.update_status_confirmation(confirmation_id, confirmation_status)
+                        if update_status_confirmation:
+                            await self.stop_user_task(user_data['meeting_id'])
+                            user_data.pop('username', None)
+                            user_data.pop('chat_id', None)
+                            user_data.pop('meeting_id', None)
+                            user_data['current_state'] = 'idle'
 
-                elif response == 'нет':
-                    await message.reply("Встреча не состоялась.", reply_markup=ReplyKeyboardRemove())
-                    meeting_status = 'DECLINED'
-                    await self.meeting_db_manager.update_status(self.confirmation[str(chat_id)]['meeting_id'], meeting_status)
-                    del self.meeting_data[self.confirmation[str(chat_id)]['username']]
-                    del self.confirmation[str(chat_id)]
-                    logging.info(f'Встреча не состоялась. статус: {meeting_status}')
-                    user_data['current_state'] = 'idle'
-
+                        else:
+                            logging.info('handle_confirmation_response update_status_confirmation: confirmation status was not updated on SENT')
+                    else:
+                        logging.info('handle_confirmation_response get_meeting_confirmation_id: id confirmation not received')
                 else:
-                    await message.reply("неизвестный ответ")
+                    logging.info('handle_confirmation_response update_status: meeting status was not updated to ACCEPTED')
+
+            elif response == 'нет':
+                await message.reply("Встреча не состоялась.", reply_markup=ReplyKeyboardRemove())
+                meeting_status = 'DECLINED'
+                update_status = await self.meeting_db_manager.update_status(user_data['meeting_id'], meeting_status)
+                if update_status:
+                    logging.info(f'Встреча не состоялась. статус: {meeting_status}')
+                    confirmation_status = 'SENT'
+                    confirmation_id = await self.meeting_db_manager.get_meeting_confirmation_id(user_data['meeting_id'])
+                    if confirmation_id:
+                        update_status_confirmation = await self.meeting_db_manager.update_status_confirmation(confirmation_id, confirmation_status)
+                        if update_status_confirmation:
+                            await self.stop_user_task(user_data['meeting_id'])
+                            user_data.pop('username', None)
+                            user_data.pop('chat_id', None)
+                            user_data.pop('meeting_id', None)
+                            user_data['current_state'] = 'idle'
+
+                        else:
+                            logging.info('handle_confirmation_response update_status_confirmation: confirmation status was not updated on SENT')
+                    else:
+                        logging.info('handle_confirmation_response get_meeting_confirmation_id: id confirmation not received')
+                else:
+                    logging.info('handle_confirmation_response update_status: meeting status was not updated to ACCEPTED')
             else:
-                logging.info('handle_confirmation_response: chat_id нет в confirmation')
+                await message.reply("неизвестный ответ")
 
         except Exception as e:
             logging.info(f"Произошла ошибка handle_confirmation_response: {e}")
@@ -115,7 +144,6 @@ class MessageHandler:
 
         finally:
             os.environ.pop('PGPASSWORD', None)
-
 
     async def check_file_name_message(self, message: types.Message, state: FSMContext):
         try:

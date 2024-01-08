@@ -1,5 +1,4 @@
 import logging
-
 import asyncpg
 from .settings_bot import DB_HOST, DB_USER, DB_NAME
 import datetime
@@ -136,9 +135,11 @@ class UserManager:
 
             await self.db_manager.execute_query(query, user__id, code)
             logging.info('Create password reset code successful')
+            return True
 
         except Exception as e:
             logging.info("Database Error:", e)
+            return False
 
     async def get_reset_password_code(self, user_id):
         try:
@@ -190,8 +191,27 @@ class ProfessorManager(UserManager):
             """
 
             data = await self.db_manager.execute_query(query, professor_id)
+            if data:
+                return data
+            else:
+                return None
 
-            return data
+        except Exception as e:
+            logging.info("Database Error:", e)
+
+    async def get_today_meetings(self, professor_id, target_date):
+        try:
+            query = """
+                SELECT datetime, student_id
+                FROM meetings_meetings
+                WHERE professor_id = $1 AND DATE(datetime) = $2;
+            """
+
+            data = await self.db_manager.execute_query(query, professor_id, target_date)
+            if data:
+                return data
+            else:
+                return None
 
         except Exception as e:
             logging.info("Database Error:", e)
@@ -206,6 +226,33 @@ class ProfessorManager(UserManager):
 
             await self.db_manager.execute_query(query, telegram_username, str(chat_id))
             logging.info("Update chat_id successful")
+            return True
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+            return False
+
+    async def get_professor_by_id(self, professor_id):
+        try:
+            query = """
+                SELECT id, tg_username, tg_idbot, user_id
+                FROM professors_professors
+                WHERE id = $1;
+            """
+
+            data = await self.db_manager.execute_query(query, professor_id)
+
+            if data:
+                professor_data = {
+                    'id': data[0][0],
+                    'username': data[0][1],
+                    'chat_id': data[0][2],
+                    'user_id': data[0][3]
+                }
+
+                return professor_data
+            else:
+                return None
 
         except Exception as e:
             logging.info("Database Error:", e)
@@ -240,6 +287,26 @@ class StudentManager(UserManager):
 
             await self.db_manager.execute_query(query, telegram_username, str(chat_id))
             logging.info("Update chat_id successful")
+            return True
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+            return False
+
+    async def get_username(self, student_id):
+        try:
+            query = """
+                SELECT telegram_username
+                FROM students_student
+                WHERE id = $1;
+            """
+
+            data = await self.db_manager.execute_query(query, student_id)
+
+            if data:
+                return data[0][0]
+            else:
+                return None
 
         except Exception as e:
             logging.info("Database Error:", e)
@@ -259,9 +326,11 @@ class MeetingManager:
 
             await self.db_manager.execute_query(query, new_status, meeting_id)
             logging.info("Update status successful")
+            return True
 
         except Exception as e:
             logging.info("Database Error:", e)
+            return False
 
     async def sorting(self, meetings):
         try:
@@ -287,3 +356,192 @@ class MeetingManager:
 
         except Exception as e:
             logging.info("Database Error:", e)
+
+    async def create_meetings_confirmation(self, chat_id, username, appointed_time, duration, status, meeting_id,
+                                           professor_id, confirmation_attempts):
+        try:
+            query = """
+                INSERT INTO meetings_meetingsconfirmation (chat_id, username, appointed_time, duration, status, meeting_id, professor_id, confirmation_attempts)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+            """
+
+            await self.db_manager.execute_query(query, chat_id, username, appointed_time, duration, status, meeting_id,
+                                                professor_id, confirmation_attempts)
+
+            logging.info("MeetingsConfirmation created successfully")
+            return True
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+            return False
+
+    async def get_unsent_meetings_confirmation(self):
+        try:
+            query = """
+                SELECT id, chat_id, username, appointed_time, duration, status, meeting_id, professor_id
+                FROM meetings_meetingsconfirmation
+                WHERE status = 'DID NOT SENT';
+            """
+
+            data = await self.db_manager.execute_query(query)
+
+            unsent_meetings_confirmation = []
+            for row in data:
+                meetings_confirmation_data = {
+                    'id': row[0],
+                    'chat_id': row[1],
+                    'username': row[2],
+                    'appointed_time': row[3],
+                    'duration': row[4],
+                    'status': row[5],
+                    'meeting_id': row[6],
+                    'professor_id': row[7],
+                }
+                unsent_meetings_confirmation.append(meetings_confirmation_data)
+
+            return unsent_meetings_confirmation
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+
+    async def get_meeting_confirmation_id(self, meeting_id):
+        try:
+            query = """
+                SELECT id
+                FROM meetings_meetingsconfirmation
+                WHERE meeting_id = $1
+            """
+            result = await self.db_manager.execute_query(query, meeting_id)
+
+            return result[0]['id'] if result else None
+
+        except Exception as e:
+            logging.info(f"Database Error: {e}")
+            return None
+
+    async def update_status_confirmation(self, confirmation_id, new_status):
+        try:
+            query = """
+                UPDATE meetings_meetingsconfirmation
+                SET status = $1
+                WHERE id = $2
+            """
+
+            await self.db_manager.execute_query(query, new_status, confirmation_id)
+            logging.info("Update confirmation status successful")
+            return True
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+            return False
+
+    async def get_new_meeting(self):
+        try:
+            query = """
+                SELECT id, professor_id
+                FROM payments_payments
+                WHERE status_new_meeting = 'DID NOT SENT';
+            """
+
+            data = await self.db_manager.execute_query(query)
+
+            result = []
+            for row in data:
+                result.append({
+                    'id': row[0],
+                    'professor_id': row[1],
+                })
+
+            return result
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+
+    async def update_status_payments(self, payment_id, new_status):
+        try:
+            query = """
+                UPDATE payments_payments
+                SET status_new_meeting = $1
+                WHERE id = $2
+            """
+
+            await self.db_manager.execute_query(query, new_status, payment_id)
+            logging.info("Update payments status successful")
+            return True
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+            return False
+
+    async def get_meeting_by_id(self, meeting_id):
+        try:
+            query = """
+                SELECT student_id, professor_id
+                FROM meetings_meetings
+                WHERE id = $1;
+            """
+
+            data = await self.db_manager.execute_query(query, meeting_id)
+
+            if data:
+                row = data[0]
+                result = {
+                    'student_id': row[0],
+                    'professor_id': row[1],
+                }
+                return result
+            else:
+                return None
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+
+    async def get_confirmation_data(self, confirmation_id):
+        try:
+            query = """
+                SELECT confirmation_attempts, duration
+                FROM meetings_meetingsconfirmation
+                WHERE id = $1;
+            """
+
+            data = await self.db_manager.execute_query(query, confirmation_id)
+
+            if data:
+                confirmation_data = {
+                    'confirmation_attempts': data[0][0],
+                    'duration': data[0][1],
+
+                }
+                return confirmation_data
+            else:
+                return None
+
+        except Exception as e:
+            logging.info("Database Error:", e)
+
+    async def update_meeting_confirmation(self, confirmation_id, new_duration, new_confirmation_attempts):
+        try:
+            query = """
+                UPDATE meetings_meetingsconfirmation
+                SET duration = $1, confirmation_attempts = $2
+                WHERE id = $3;
+            """
+
+            await self.db_manager.execute_query(query, new_duration, new_confirmation_attempts, confirmation_id)
+            logging.info("Update meeting_confirmation data successful")
+            return True
+
+        except Exception as e:
+            logging.error(f"Database Error: {e}")
+            return False
+
+
+
+
+
+
+
+
+
+
+

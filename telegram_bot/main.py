@@ -9,7 +9,7 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.utils import executor
-from .settings_bot import TOKEN, DB_HOST, DB_PASSWORD, DB_USER, DB_NAME
+from .settings_bot import TOKEN, DB_HOST, DB_PASSWORD, DB_USER, DB_NAME, LINK_TO_SCHEDULE
 from .database import UserManager, StudentManager, ProfessorManager, MeetingManager, DataBase
 from .command_handler import CommandHandler
 from .message_handler import MessageHandler
@@ -43,7 +43,7 @@ class MainBot:
         self.main_bot_services = MainBotServices()
         self.my_state = MyState()
         self.user_tasks = {}
-        self.meeting_not_marked = {}
+        self.new_meeting_tasks = {}
         self.command_handler = CommandHandler(
                 self.bot,
                 self.dp,
@@ -65,12 +65,30 @@ class MainBot:
                 self.command_handler,
                 self.my_state
             )
-        self.confirmation_lock = asyncio.Lock()
 
-    async def stop_user_task(self, username):
-        if username in self.user_tasks:
-            task = self.user_tasks.pop(username)
+    async def stop_user_task(self, data, tasks):
+        if data in tasks:
+            task = tasks.pop(data)
             task.cancel()
+
+    async def sending_new_meeting_message(self, payment_id, professor_id):
+        try:
+            professor_data = await self.professor_db_manager.get_professor_by_id(professor_id)
+            if professor_data:
+                await self.bot.send_message(chat_id=professor_data['chat_id'],
+                                            text=f"{professor_data['username']}, у вас назначены новые встречи!\nДля получения подробной информации, перейдите по ссылке: {LINK_TO_SCHEDULE}")
+                status = 'SENT'
+                update_status_payments = await self.meeting_db_manager.update_status_payments(payment_id, status)
+                if update_status_payments:
+                    await self.stop_user_task(payment_id, self.new_meeting_tasks)
+                    logging.info(f'sending_new_meeting_message обработан {professor_data["username"]}')
+                else:
+                    logging.info('Sending_new_meeting_message update_status_payments: payment status has not been updated')
+            else:
+                logging.info('sending_new_meeting_message get_professor_by_id: Professors details not received')
+
+        except Exception as e:
+            logging.info(f"Произошла ошибка sending_new_meeting_message: {e}")
 
     async def sending_confirmation_message(self, chat_id, username, meeting_appointed_time, meeting_duration, meeting_id):
         try:
@@ -84,23 +102,46 @@ class MainBot:
             time_difference_minutes = (meeting_end_time - current_time_kyrgyzstan).total_seconds() / 60
 
             if 0 < time_difference_minutes <= 1:
-                async with self.confirmation_lock:
-                    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True, one_time_keyboard=True)
-                    markup.add(types.KeyboardButton("Да"), types.KeyboardButton("Нет"))
+                user_id = await self.meeting_db_manager.get_meeting_by_id(int(meeting_id))
+                if user_id:
+                    student_username = await self.student_db_manager.get_username(int(user_id['student_id']))
+                    if student_username:
+                        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True, one_time_keyboard=True)
+                        markup.add(types.KeyboardButton("Да"), types.KeyboardButton("Нет"))
+                        await self.bot.send_message(chat_id, f"Прошла ли встреча с пользователем {student_username} ?\nДата и время встречи: {meeting_appointed_time.strftime('%Y-%m-%d %H:%M:%S')}", reply_markup=markup)
+                        logging.info(f"Опрос отправлен пользователю {username}")
+                    else:
+                        logging.info('sending_confirmation_message get_username: student username not received')
+                else:
+                    logging.info('sending_confirmation_message get_meeting_by_id: Professor and student id not received')
 
-                    await self.bot.send_message(chat_id, "Прошла ли встреча?", reply_markup=markup)
-                    logging.info(f"Опрос отправлен пользователю {username}")
-
-                    self.message_handler.user_data['current_state'] = 'waiting_confirmation'
+                self.message_handler.user_data['username'] = username
+                self.message_handler.user_data['chat_id'] = chat_id
+                self.message_handler.user_data['meeting_id'] = meeting_id
+                self.message_handler.user_data['current_state'] = 'waiting_confirmation'
 
             elif time_difference_minutes < 0:
-                async with self.confirmation_lock:
-                    self.meeting_not_marked[username] = {
-                        'username': username,
-                        'chat_id': chat_id,
-                        'meeting_id': meeting_id
-                    }
-                    logging.info(f'Пользователь {username} не подтвердил встречу')
+                confirmation_id = await self.meeting_db_manager.get_meeting_confirmation_id(meeting_id)
+                if confirmation_id:
+                    current_confirmation_data = await self.meeting_db_manager.get_confirmation_data(confirmation_id)
+                    if current_confirmation_data['confirmation_attempts'] != 3:
+                        new_duration = current_confirmation_data['duration'] + datetime.timedelta(minutes=2)
+                        new_confirmation_attempts = current_confirmation_data['confirmation_attempts'] + 1
+                        update_meeting_confirmation = await self.meeting_db_manager.update_meeting_confirmation(confirmation_id, new_duration, new_confirmation_attempts)
+                        if not update_meeting_confirmation:
+                            logging.info('sending_confirmation_message update_meeting_confirmation: confirmation data has not been updated')
+
+                    else:
+                        await self.bot.send_message(chat_id,"Встреча не была подтверждена. Свяжитесь с администрацией.", reply_markup=ReplyKeyboardRemove())
+                        logging.info(f'Пользователь {username} не подтвердил встречу, отправлено уведомление администрации')
+                        self.message_handler.user_data['current_state'] = 'idle'
+                        meeting_status = 'NOT MARKED'
+                        confirmation_status = 'SENT'
+                        await self.meeting_db_manager.update_status(meeting_id, meeting_status)
+                        await self.meeting_db_manager.update_status_confirmation(confirmation_id, confirmation_status)
+                        await self.message_handler.stop_user_task(meeting_id)
+                else:
+                    logging.info('sending_confirmation_message get_meeting_confirmation_id: id confirmation not received')
 
         except Exception as e:
             logging.info(f"Произошла ошибка sending_confirmation_message: {e}")
@@ -119,110 +160,147 @@ class MainBot:
                 await self.bot.send_message(chat_id=chat_id, text=f"Время встречи наступило, {username}! Ссылка на встречу: {meeting_link}")
                 await self.db.create_pool()
                 user_data = await self.user_db_manager.get_user(username)
-                if user_data['user_type'] == 'professor':
-                    self.message_handler.meeting_data[username] = {
-                        'chat_id': chat_id,
-                        'username': username,
-                        'meeting_id': meeting_id,
-                        'meeting_appointed_time': meeting_appointed_time,
-                        'meeting_duration': meeting_duration
-                    }
-                elif user_data['user_type'] == 'student':
-                    await self.stop_user_task(username)
-                    logging.info(f'Задача для студента {username} остановлена.')
+                if user_data:
+                    if user_data['user_type'] == 'professor':
+                        create_meetings_confirmation = await self.meeting_db_manager.create_meetings_confirmation(
+                            chat_id, username, meeting_appointed_time, meeting_duration, status='DID NOT SENT',
+                            meeting_id=meeting_id, professor_id=user_data['id'], confirmation_attempts=0
+                        )
+                        if not create_meetings_confirmation:
+                            logging.info('sending_link_message create_meetings_confirmation: no confirmation record has been created in the database')
+
+                        await self.stop_user_task(username, self.user_tasks)
+
+                    elif user_data['user_type'] == 'student':
+                        await self.stop_user_task(username, self.user_tasks)
+                        logging.info(f'Задача для студента {username} остановлена.')
+                else:
+                    logging.info('sending_link_message get_user: user data not received')
 
             elif 29 * 60 <= time_difference.total_seconds() <= 30 * 60:
-                logging.info(f"Отправка напоминания на 30 минут... пользователю : {username}")
-                await self.bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча, {username}! Подготовьтесь.")
-                logging.info("Дождаться времени встречи...")
+                current_user = await self.user_db_manager.get_user(username)
+                if current_user['user_type'] == 'professor':
+                    user_id = await self.meeting_db_manager.get_meeting_by_id(int(meeting_id))
+                    student_username = await self.student_db_manager.get_username(int(user_id['student_id']))
+                    logging.info(f"Отправка напоминания на 30 минут... пользователю : {username}")
+                    await self.bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча с пользователем {student_username}, {username}! Подготовьтесь.")
+                    logging.info("Дождаться времени встречи...")
+
+                elif current_user['user_type'] == 'student':
+                    user_id = await self.meeting_db_manager.get_meeting_by_id(int(meeting_id))
+                    professor_username = await self.professor_db_manager.get_professor_by_id(int(user_id['professor_id']))
+                    logging.info(f"Отправка напоминания на 30 минут... пользователю : {username}")
+                    await self.bot.send_message(chat_id=chat_id, text=f"Через 30 минут у вас будет встреча с пользователем {professor_username['username']}, {username}! Подготовьтесь.")
+                    logging.info("Дождаться времени встречи...")
 
         except Exception as e:
-            logging.info(f"Произошла ошибка sending_message: {e}")
+            logging.info(f"Произошла ошибка sending_link_message: {e}")
 
-    async def main(self):
+    async def processing_new_meetings(self):
         try:
-            await self.db.create_pool()
+            new_meeting_data = await self.meeting_db_manager.get_new_meeting()
+            if new_meeting_data:
+                for new_meeting in new_meeting_data:
+                    task = asyncio.create_task(self.sending_new_meeting_message(
+                        new_meeting['id'],
+                        new_meeting['professor_id']
+                    ))
+                    self.new_meeting_tasks[new_meeting['id']] = task
+                await asyncio.gather(*self.new_meeting_tasks.values())
+
+        except Exception as e:
+            logging.info(f"Произошла ошибка processing_new_meetings: {e}")
+
+    async def link_processing(self):
+        try:
             if self.command_handler.active_users:
-                logging.info(f'Активные пользователи main : {len(self.command_handler.active_users)}')
                 for username in self.command_handler.active_users:
                     data = await self.user_db_manager.get_user(username)
 
                     if data['user_type'] == 'professor':
                         meetings = await self.professor_db_manager.get_meetings(data['id'])
-                        meeting_data = await self.meeting_db_manager.sorting(meetings)
-                        chat_id = await self.professor_db_manager.get_chat_id(data['username'])
-                        if meeting_data is not None:
-                            task = asyncio.create_task(self.sending_link_message(
-                                chat_id, data['username'],
-                                meeting_data['datetime'],
-                                meeting_data['jitsiLink'],
-                                meeting_data['duration'],
-                                meeting_data['id'])
+                        if meetings:
+                            meeting_data = await self.meeting_db_manager.sorting(meetings)
+                            chat_id = await self.professor_db_manager.get_chat_id(data['username'])
+                            if chat_id:
+                                if meeting_data is not None:
+                                    task = asyncio.create_task(self.sending_link_message(
+                                        chat_id,
+                                        data['username'],
+                                        meeting_data['datetime'],
+                                        meeting_data['jitsiLink'],
+                                        meeting_data['duration'],
+                                        meeting_data['id'])
+                                    )
+                                    self.user_tasks[username] = task
 
-                            )
-                            self.user_tasks[username] = task
-
+                                else:
+                                    logging.info(f"У пользователя {data['username']} нет встреч")
+                            else:
+                                logging.info(f'link_processing get_chat_id: the chat_id of the {data["username"]} user was not received')
                         else:
-                            logging.info(f"У пользователя {data['username']} нет встреч")
+                            logging.info(f'link_processing get_meetings: meetings of the {data["username"]} user have been received')
 
                     elif data['user_type'] == 'student':
                         meetings = await self.student_db_manager.get_meetings(data['id'])
-                        meeting_data = await self.meeting_db_manager.sorting(meetings)
-                        chat_id = await self.student_db_manager.get_chat_id(data['username'])
-                        if meeting_data is not None:
-                            task = asyncio.create_task(self.sending_link_message(
-                                chat_id, data['username'],
-                                meeting_data['datetime'],
-                                meeting_data['jitsiLink'],
-                                meeting_data['duration'],
-                                meeting_data['id'])
-                            )
-                            self.user_tasks[username] = task
-
-                        else:
-                            logging.info(f"У пользователя {data['username']} нет встреч")
-
-                    if self.message_handler.meeting_data:
-                        async with self.confirmation_lock:
-                            for username in self.message_handler.meeting_data:
-                                professor_data = await self.professor_db_manager.get_data(username)
-                                if professor_data:
-                                    meeting = self.message_handler.meeting_data[username]
-                                    self.message_handler.confirmation[meeting['chat_id']] = {
-                                        'chat_id': meeting['chat_id'],
-                                        'username': meeting['username'],
-                                        'meeting_id': meeting['meeting_id'],
-
-                                    }
-
-                                    await self.sending_confirmation_message(
-                                        professor_data['chat_id'],
-                                        professor_data['username'],
-                                        meeting['meeting_appointed_time'],
-                                        meeting['meeting_duration'],
-                                        meeting['meeting_id']
+                        if meetings:
+                            meeting_data = await self.meeting_db_manager.sorting(meetings)
+                            chat_id = await self.student_db_manager.get_chat_id(data['username'])
+                            if chat_id:
+                                if meeting_data is not None:
+                                    task = asyncio.create_task(self.sending_link_message(
+                                        chat_id,
+                                        data['username'],
+                                        meeting_data['datetime'],
+                                        meeting_data['jitsiLink'],
+                                        meeting_data['duration'],
+                                        meeting_data['id'])
                                     )
+                                    self.user_tasks[username] = task
 
+                                else:
+                                    logging.info(f"У пользователя {data['username']} нет встреч")
                             else:
-                                logging.info(f'Пользователь {username} не является учителем, задача остановлена')
-
-                    if self.meeting_not_marked:
-                        async with self.confirmation_lock:
-                            for username, data in self.meeting_not_marked.items():
-                                chat_id = data['chat_id']
-                                meeting_id = data['meeting_id']
-                                meeting_status = 'NOT MARKED'
-                                await self.meeting_db_manager.update_status(meeting_id, meeting_status)
-                                del self.message_handler.meeting_data[self.message_handler.confirmation[str(chat_id)]['username']]
-                                del self.message_handler.confirmation[str(chat_id)]
-                                logging.info(f'Время истекло. Встреча отмечена как NOT MARKED. статус: {meeting_status}')
-                                await self.bot.send_message(chat_id, 'Вы не подтвердили встречу!\nвстреча останется не отмечанной', reply_markup=ReplyKeyboardRemove())
-                                self.message_handler.user_data['current_state'] = 'idle'
-
-                            self.meeting_not_marked.clear()
+                                logging.info(f'link_processing get_chat_id: the chat_id of the {data["username"]} user was not received')
+                        else:
+                            logging.info(f'link_processing get_meetings: meetings of the {data["username"]} user have been received')
 
                 await asyncio.gather(*self.user_tasks.values())
 
+            else:
+                logging.info('Нет активных пользователей')
+
+        except Exception as e:
+            logging.info(f"Произошла ошибка link_processing: {e}")
+
+    async def confirmation_processing(self):
+        try:
+            confirmation_data = await self.meeting_db_manager.get_unsent_meetings_confirmation()
+            if confirmation_data:
+                logging.info('обработка подтверждений')
+                for confirmation in confirmation_data:
+                    task = asyncio.create_task(self.sending_confirmation_message(
+                        confirmation['chat_id'],
+                        confirmation['username'],
+                        confirmation['appointed_time'],
+                        confirmation['duration'],
+                        confirmation['meeting_id']
+                    ))
+                    self.message_handler.confirmation_tasks[confirmation['meeting_id']] = task
+                await asyncio.gather(*self.message_handler.confirmation_tasks.values())
+
+        except Exception as e:
+            logging.info(f"Произошла ошибка confirmation_processing: {e}")
+
+    async def main(self):
+        try:
+            await self.db.create_pool()
+            if self.command_handler.active_users:
+                logging.info(f'Активные пользователи : {len(self.command_handler.active_users)}')
+                await asyncio.gather(self.link_processing(),
+                                     self.confirmation_processing(),
+                                     self.processing_new_meetings()
+                                     )
             else:
                 logging.info('Нет активных пользователей')
 
@@ -242,8 +320,7 @@ async def run():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='bot_logs.log', level=logging.INFO, encoding='utf-8',
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()
     loop.create_task(main_bot.register_commands())
     aiocron.crontab('*/1 * * * *', func=lambda: asyncio.ensure_future(run()))
