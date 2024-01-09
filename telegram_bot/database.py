@@ -459,7 +459,8 @@ class MeetingManager:
             query = """
                 SELECT id, professor_id
                 FROM payments_payments
-                WHERE status_new_meeting = 'DID NOT SENT';
+                WHERE status_new_meeting = 'DID NOT SENT'
+                AND status = 'COMPLETED';
             """
 
             data = await self.db_manager.execute_query(query)
