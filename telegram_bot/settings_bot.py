@@ -1,7 +1,3 @@
-
-TOKEN = "6111157752:AAGokr4olAmmwSTz0ygY8omJHcXappx7NOA"
-
-
 DB_PORT = "5432"
 DB_HOST = 'db'
 DB_NAME = 'unibilim'

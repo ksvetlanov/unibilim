@@ -9,7 +9,9 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.utils import executor
-from .settings_bot import TOKEN, DB_HOST, DB_PASSWORD, DB_USER, DB_NAME, LINK_TO_SCHEDULE
+import os
+from dotenv import load_dotenv
+from .settings_bot import DB_HOST, DB_PASSWORD, DB_USER, DB_NAME, LINK_TO_SCHEDULE
 from .database import UserManager, StudentManager, ProfessorManager, MeetingManager, DataBase
 from .command_handler import CommandHandler
 from .message_handler import MessageHandler
@@ -31,7 +33,7 @@ class MainBotServices:
 
 class MainBot:
     def __init__(self):
-        self.bot = Bot(token=TOKEN)
+        self.bot = Bot(token=os.getenv('TELEGRAM_BOT_TOKEN'))
         self.storage = MemoryStorage()
         self.dp = Dispatcher(self.bot, storage=self.storage)
         self.dp.middleware.setup(LoggingMiddleware())
@@ -312,6 +314,7 @@ class MainBot:
         await self.message_handler.register_commands()
 
 
+load_dotenv()
 main_bot = MainBot()
 
 
