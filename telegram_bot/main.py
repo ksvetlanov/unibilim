@@ -323,7 +323,8 @@ async def run():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(filename='bot_logs.log', level=logging.INFO, encoding='utf-8',
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     loop = asyncio.get_event_loop()
     loop.create_task(main_bot.register_commands())
     aiocron.crontab('*/1 * * * *', func=lambda: asyncio.ensure_future(run()))
